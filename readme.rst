@@ -1,7 +1,7 @@
 Dailygraphics Templates
 =======================
 
-A collection of data visualization templates for the `NPR Daily Graphics Next rig <http://github.com/nprapps/dailygraphics-next>`_.
+A collection of data visualization templates for the `bettergov fork <https://github.com/bettergov/dailygraphics-next>`_ of `NPR Daily Graphics Next rig <http://github.com/nprapps/dailygraphics-next>`_.
 
 How a template becomes a graphic
 --------------------------------
