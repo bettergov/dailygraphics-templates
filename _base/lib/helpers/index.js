@@ -11,7 +11,9 @@ module.exports = {
   getLocation: require("./getLocation"),
   getParameterByName: require("./getParameterByName"),
   isProduction: require("./isProduction"),
+  lookupColor: require("./lookupColor"),
   makeTranslate: require("./makeTranslate"),
+  parseNumber: require("./parseNumber"),
   urlToLocation: require("./urlToLocation"),
   wrapText: require("./wrapText")
-}
+};

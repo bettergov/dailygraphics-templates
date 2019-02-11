@@ -3,7 +3,7 @@
 <% } %>
 
 <% if (COPY.labels.subhed) { %>
-<h2><%= t.smarty(COPY.labels.subhed) %></h2>
+<h2><%= t.markdown.render(COPY.labels.subhed) %></h2>
 <% } %>
 
 <div id="bar-chart" class="graphic" role="img"
@@ -22,10 +22,16 @@
 <% } %>
 
 <div class="footer">
-  <% if (COPY.labels.source) { %><p>Source: <%= COPY.labels.source %></p><% } %>
-  <% if (COPY.labels.credit) { %><p>Credit: <%= COPY.labels.credit %></p><% } %>
+  <% if (COPY.labels.source) { %>
+  <p>Source: <%= t.markdown.renderInline(COPY.labels.source) %></p>
+  <% } %>
+
+  <% if (COPY.labels.credit) { %>
+  <p>Credit: <%= t.markdown.renderInline(COPY.labels.credit) %></p>
+  <% } %>
 </div>
 
 <script type="text/javascript">
   var DATA = <%= JSON.stringify(COPY.data) %>;
+  var PROPS = <%= JSON.stringify(COPY.props) %>;
 </script>
