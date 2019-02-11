@@ -74,7 +74,6 @@ Other files
 
 The template folder also contains a set of HTML files that are required for the rig to function, which we've broken out so that they can be customized for non-NPR newsrooms:
 
-* copyedit.html - The copy-edit e-mail text
 * embed.html - The embed code used to place the interactive into a CMS page
 * link.html - The "direct link" (used at NPR for stories distributed via the API, such as in-appp views)
 
