@@ -23,11 +23,11 @@
 
 <div class="footer">
   <% if (COPY.labels.source) { %>
-  <p>Source: <%= t.markdown.renderInline(COPY.labels.source) %></p>
+  <p><strong>Source:</strong> <%= t.markdown.renderInline(COPY.labels.source) %></p>
   <% } %>
 
   <% if (COPY.labels.credit) { %>
-  <p>Credit: <%= t.markdown.renderInline(COPY.labels.credit) %></p>
+  <p><strong>Credit:</strong> <%= t.markdown.renderInline(COPY.labels.credit) %></p>
   <% } %>
 </div>
 

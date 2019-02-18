@@ -1,72 +1,70 @@
+@import url("https://use.typekit.net/wjf8iou.css");
+
 // Media queries
 @screen-medium-above: ~"screen and (min-width: 651px)";
 @screen-mobile-above: ~"screen and (min-width: 501px)";
 @screen-mobile: ~"screen and (max-width: 500px)";
 
 // Colors
-@red1       : #6C2315;
-@red2       : #A23520;
-@red3       : #D8472B;
-@red4       : #E27560;
-@red5       : #ECA395;
-@red6       : #F5D1CA;
+@red1 : #6C2315;
+@red2 : #A23520;
+@red3 : #D8472B;
+@red4 : #E27560;
+@red5 : #ECA395;
+@red6 : #F5D1CA;
 
-@orange1    : #714616;
-@orange2    : #AA6A21;
-@orange3    : #E38D2C;
-@orange4    : #EAAA61;
-@orange5    : #F1C696;
-@orange6    : #F8E2CA;
+@orange1 : #714616;
+@orange2 : #AA6A21;
+@orange3 : #E38D2C;
+@orange4 : #EAAA61;
+@orange5 : #F1C696;
+@orange6 : #F8E2CA;
 
-@yellow1    : #77631B;
-@yellow2    : #B39429;
-@yellow3    : #EFC637;
-@yellow4    : #F3D469;
-@yellow5    : #F7E39B;
-@yellow6    : #FBF1CD;
+@yellow1 : #77631B;
+@yellow2 : #B39429;
+@yellow3 : #EFC637;
+@yellow4 : #F3D469;
+@yellow5 : #F7E39B;
+@yellow6 : #FBF1CD;
 
-@teal1      : #0B403F;
-@teal2      : #11605E;
-@teal3      : #17807E;
-@teal4      : #51A09E;
-@teal5      : #8BC0BF;
-@teal6      : #C5DFDF;
+@teal1 : #0B403F;
+@teal2 : #11605E;
+@teal3 : #17807E;
+@teal4 : #51A09E;
+@teal5 : #8BC0BF;
+@teal6 : #C5DFDF;
 
-@blue1      : #28556F;
-@blue2      : #3D7FA6;
-@blue3      : #51AADE;
-@blue4      : #7DBFE6;
-@blue5      : #A8D5EF;
-@blue6      : #D3EAF7;
+@blue1 : #28556F;
+@blue2 : #3D7FA6;
+@blue3 : #51AADE;
+@blue4 : #7DBFE6;
+@blue5 : #A8D5EF;
+@blue6 : #D3EAF7;
+
+@size1: 3rem;
+@size2: 2.5rem;
+@size3: 2rem;
+@size4: 1.5rem;
+@size5: 1.25rem;
+@size6: 1rem;
+@size7: 0.75rem;
+
+@grey1 : hsl(0, 0, 21%);
+@grey2 : hsl(0, 0, 29%);
+@grey3 : hsl(0, 0, 48%);
+@grey4 : hsl(0, 0, 71%);
+@grey5 : hsl(0, 0, 86%);
+@grey6 : hsl(0, 0, 92%);
 
 // Fonts
-.gotham() {
-  font-family: 'Gotham SSm',Helvetica,Arial,sans-serif;
+.condensed() {
+  font-family: acumin-pro-condensed, Helvetica, Arial, sans-serif;
   font-weight: normal;
   font-weight: 400;
 }
 
-// Normal Knockout
-.knockout() {
-  font-family: 'Knockout 31 4r','Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
-  font-weight: normal;
-}
-
-// Knockout, uppercased
-.knockout-upper() {
-  .knockout();
-  text-transform: uppercase;
-}
-
-// Knockout for headings
-.knockout-header() {
-  .knockout-upper();
-  letter-spacing: 0.05em;
-  -webkit-font-smoothing: antialiased;
-}
-
 .sans-serif() {
-  font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+  font-family: acumin-pro, "Helvetica", "Arial", sans-serif;
 }
 
 // Mixins
@@ -86,47 +84,34 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html { -webkit-text-size-adjust: none; }
+html {
+  -webkit-text-size-adjust: none;
+  font-size: 12px;
+}
 
 body {
   margin: 0;
-  padding: 33px 0;
-  font: 14px/1.4 Helvetica, Arial, sans-serif;
-  color: #555;
+  padding: 1rem 0;
+  font: @size6 / 1.4 acumin-pro, Helvetica, Arial, sans-serif;
+  color: @grey3;
   //remove 300ms click delay in Safari, AKA still the worst
   touch-action: manipulation;
 }
 
 h1 {
-  margin: 0 0 33px 0;
-  font-size: 20px;
-  color: #666;
-  font-family: 'Gotham SSm',Helvetica,Arial,sans-serif;
-  font-weight: normal;
+  .condensed();
+  margin: 0 0 1rem 0;
+  font-size: @size3;
+  color: @grey2;
   line-height: 1.3;
-  font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 
 h2 {
   font-weight: normal;
-  color: #777;
-  font-size: 12px;
-  margin: -22px 0 22px 0;
-  line-height: 1.6;
-}
-
-h3 {
-  margin: 0 0 15px 0;
-  font-family: 'Knockout 31 4r';
-  font-weight: normal;
-  text-transform: uppercase;
-  padding-top: 0;
-  line-height: 1.2;
-  letter-spacing: 0.05em;
-  -webkit-font-smoothing: antialiased;
-  font-size: 12px;
-  color: #333;
+  color: @grey3;
+  font-size: @size5;
+  margin: 1.5rem 0;
 }
 
 .nowrap {
@@ -134,33 +119,39 @@ h3 {
 }
 
 .footnotes {
-  margin-bottom: 20px;
+  margin-bottom: 1.5rem;
 
   h4 {
-    margin: 2px 0 7px 0;
-    color: #666;
-    font-size: 11px;
+    margin: 0;
+    color: @grey2;
+    font-size: @size6;
   }
 }
 
 .footnotes p,
 .footer p {
-  margin: 2px 0 0 0;
-  font-size: 11px;
-  line-height: 1.7;
-  color: #999;
+  margin: 0;
+  font-size: @size6;
+  line-height: 1.6;
+  color: @grey3;
 }
 
-.footer p { font-style: italic; }
-.footer p em { font-style: normal; }
-.footnotes p strong { color: #666; }
+.footer p strong,
+.footnotes p strong {
+  color: @grey2;
+}
 
-a, a:link, a:visited {
-  color: #4774CC;
+a,
+a:link,
+a:visited {
+  color: #4774cc;
   text-decoration: none;
 }
 
-a:hover, a:active { color: #bccae5; }
+a:hover,
+a:active {
+  text-decoration: underline;
+}
 
 // Standard graphic styles
 .graphic-wrapper {
@@ -169,7 +160,7 @@ a:hover, a:active { color: #bccae5; }
 
 .graphic {
   position: relative;
-  margin-bottom: 11px;
+  margin-bottom: 1rem;
   .clearfix();
 
   img {
@@ -179,71 +170,89 @@ a:hover, a:active { color: #bccae5; }
 }
 
 .key {
-  margin: -11px 0 33px 0;
+  margin: -0.5rem 0 2.5rem 0;
   padding: 0;
   list-style-type: none;
 
+  @item-height: 15px;
+
   .key-item {
     display: inline-block;
-    margin: 0 18px 0 0;
+    margin: 0 1.5rem 0 0;
     padding: 0;
-    line-height: 15px;
+    line-height: @item-height;
 
     b {
       display: inline-block;
-      width: 15px;
-      height: 15px;
-      margin-right: 6px;
+      width: @item-height;
+      height: @item-height;
+      margin-right: 0.5rem;
       float: left;
     }
 
     label {
       white-space: nowrap;
-      font-size: 12px;
-      color: #666;
+      font-size: @size6;
+      color: @grey3;
       font-weight: normal;
       -webkit-font-smoothing: antialiased;
     }
   }
 }
 
-svg { overflow: hidden; }
+svg {
+  overflow: hidden;
+}
 
 .axis {
-  font-size: 11px;
+  font-size: @size6;
   -webkit-font-smoothing: antialiased;
-  fill: #999;
+  fill: @grey4;
 
   path,
   line {
     fill: none;
-    stroke: #ccc;
+    stroke: @grey5;
     shape-rendering: crispEdges;
   }
 
   &.y {
-    path { display: none; }
-    .tick line { display: none; }
+    path {
+      display: none;
+    }
+    .tick line {
+      display: none;
+    }
+  }
+
+  &.x {
+    .domain {
+      display: none;
+    }
   }
 }
 
 .grid {
-  path { display: none; }
+  path {
+    display: none;
+  }
 
   .tick {
-    stroke: #eee;
-    color: #eee;
+    stroke: @grey6;
+    color: @grey6;
     stroke-width: 1px;
     shape-rendering: crispEdges;
   }
 
   &.y {
-    g:first-child line { display: none; }
+    g:first-child line {
+      display: none;
+    }
   }
 }
 
-.zero-line  {
-  stroke: #666;
+.zero-line {
+  stroke: @grey3;
   stroke-width: 1px;
   shape-rendering: crispEdges;
 }
@@ -253,8 +262,9 @@ rect {
   shape-rendering: crispEdges;
 }
 
-// .bars rect { fill: @teal3; }
-.bars { fill: @teal3; }
+.bars {
+  fill: @teal3;
+}
 
 .labels {
   position: absolute;
@@ -266,9 +276,9 @@ rect {
   li {
     position: absolute;
     text-align: right;
-    font-size: 12px;
+    font-size: @size6;
     line-height: 1.3;
-    color: #666;
+    color: @grey3;
     display: table;
     -webkit-font-smoothing: antialiased;
 
@@ -280,28 +290,20 @@ rect {
 }
 
 .value text {
-  font-size: 10px;
+  font-size: @size6;
   -webkit-font-smoothing: antialiased;
 
-  &.in { fill: #fff; }
-  &.out { fill: #999; }
+  &.in {
+    fill: @grey6;
+  }
+  &.out {
+    fill: @grey4;
+  }
 }
 
-// HOMEPAGE
-// * styles for when a project is embedded on the homepage
-// * (if someone clicked the "This code will be embedded on the NPR homepage."
-// * checkbox when pulling the embed code.)
-body.hp {
-  padding-top: 0;
-  padding-bottom: 10px;
-}
-
-// CHILDLINK
-// * Direct links to the child page (iOS app workaround link)
-body.childlink {
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 800px;
+.annotation-group {
+  fill: @grey4;
+  font-size: @size6;
 }
 
 // Accessibility styles

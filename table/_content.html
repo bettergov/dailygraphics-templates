@@ -3,7 +3,7 @@
 <% } %>
 
 <% if (COPY.labels.subhed) { %>
-<h2><%= t.smarty(COPY.labels.subhed) %></h2>
+<h2><%= t.markdown.render(COPY.labels.subhed) %></h2>
 <% } %>
 
 <div class="graphic" id="table-graphic">
@@ -50,10 +50,10 @@
 
 <div class="footer">
   <% if (COPY.labels.source) { %>
-  <p>Source: <%= COPY.labels.source %></p>
+  <p><strong>Source:</strong> <%= t.markdown.renderInline(COPY.labels.source) %></p>
   <% } %>
-  
+
   <% if (COPY.labels.credit) { %>
-  <p>Credit: <%= COPY.labels.credit %></p>
+  <p><strong>Credit:</strong> <%= t.markdown.renderInline(COPY.labels.credit) %></p>
   <% } %>
 </div>
