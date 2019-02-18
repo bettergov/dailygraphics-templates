@@ -2,6 +2,7 @@ var pym = require("./lib/pym");
 var ANALYTICS = require("./lib/analytics");
 require("./lib/webfonts");
 var { isMobile } = require("./lib/breakpoints");
+var { flow, mapValues, omitBy, forEach } = require("lodash/fp");
 
 // Global vars
 var pymChild = null;
@@ -9,13 +10,17 @@ var pymChild = null;
 var d3 = Object.assign(
   {},
   require("d3-axis"),
+  require("d3-format"),
   require("d3-scale"),
   require("d3-selection")
 );
 
-var { COLORS, makeTranslate } = require("./lib/helpers");
-
-var fmtComma = s => s.toLocaleString().replace(/\.0+$/, "");
+var {
+  COLORS,
+  makeTranslate,
+  lookupColor,
+  parseNumber
+} = require("./lib/helpers");
 
 // Initialize the graphic.
 var onWindowLoaded = function() {
@@ -43,10 +48,26 @@ var render = function(containerWidth) {
   var container = "#column-chart";
   var element = document.querySelector(container);
   var width = element.offsetWidth;
+
+  const parseValue = d => {
+    switch (d.type) {
+      case "number":
+        return parseNumber(d.value);
+      default:
+        return d.value;
+    }
+  };
+
+  var props = flow(
+    mapValues(parseValue),
+    omitBy(d => d == null)
+  )(PROPS);
+
   renderColumnChart({
     container,
     width,
-    data: DATA
+    data: DATA,
+    props
   });
 
   // Update iframe
@@ -57,23 +78,48 @@ var render = function(containerWidth) {
 
 // Render a column chart.
 var renderColumnChart = function(config) {
+  var {
+    /* data refs */
+    labelColumn,
+    valueColumn,
+    /* labels */
+    valueGap,
+    xAxisFormat = "",
+    yAxisFormat = "",
+    valueFormat = "",
+    showColumnValues,
+    /* x axis */
+    xScalePaddingInner,
+    xScalePaddingOuter,
+    xScaleAlign,
+    showXAxisTop,
+    showXAxisBottom,
+    /* y axis */
+    ticksY,
+    roundTicksFactor,
+    yMin,
+    yMax,
+    showYAxisLeft,
+    showYAxisRight,
+    showYAxisGrid,
+    /* margins */
+    marginTop,
+    marginRight,
+    marginBottom,
+    marginLeft,
+    maxChartHeight = 9999
+  } = config.props;
   // Setup chart container
-  var labelColumn = "label";
-  var valueColumn = "amt";
 
   var aspectWidth = isMobile.matches ? 4 : 16;
   var aspectHeight = isMobile.matches ? 3 : 9;
-  var valueGap = 6;
 
   var margins = {
-    top: 5,
-    right: 5,
-    bottom: 20,
-    left: 30
+    top: marginTop,
+    right: marginRight,
+    bottom: marginBottom,
+    left: marginLeft
   };
-
-  var ticksY = 4;
-  var roundTicksFactor = 50;
 
   // Calculate actual chart dimensions
   var chartWidth = config.width - margins.left - margins.right;
@@ -81,6 +127,8 @@ var renderColumnChart = function(config) {
     Math.ceil((config.width * aspectHeight) / aspectWidth) -
     margins.top -
     margins.bottom;
+
+  chartHeight = Math.min(chartHeight, maxChartHeight);
 
   // Clear existing graphic (for redraw)
   var containerElement = d3.select(config.container);
@@ -103,75 +151,95 @@ var renderColumnChart = function(config) {
     .scaleBand()
     .range([0, chartWidth])
     .round(true)
-    .padding(0.1)
+    .paddingInner(xScalePaddingInner)
+    .paddingOuter(xScalePaddingOuter)
+    .align(xScaleAlign)
     .domain(
       config.data.map(function(d) {
         return d[labelColumn];
       })
     );
 
-  var floors = config.data.map(
-    d => Math.floor(d[valueColumn] / roundTicksFactor) * roundTicksFactor
-  );
-
-  var min = Math.min(...floors);
-
-  if (min > 0) {
-    min = 0;
-  }
-
-  var ceilings = config.data.map(
-    d => Math.ceil(d[valueColumn] / roundTicksFactor) * roundTicksFactor
-  );
-
-  var max = Math.max(...ceilings);
-
   var yScale = d3
     .scaleLinear()
-    .domain([min, max])
+    .domain([yMin, yMax])
     .range([chartHeight, 0]);
 
   // Create D3 axes.
-  var xAxis = d3
-    .axisBottom()
-    .scale(xScale)
-    .tickFormat(function(d, i) {
-      return d;
-    });
+  if (showXAxisBottom) {
+    var xAxisBottom = d3
+      .axisBottom()
+      .scale(xScale)
+      .tickFormat(function(d, i) {
+        return d3.format(xAxisFormat)(d);
+      });
 
-  var yAxis = d3
-    .axisLeft()
-    .scale(yScale)
-    .ticks(ticksY)
-    .tickFormat(function(d) {
-      return fmtComma(d);
-    });
+    chartElement
+      .append("g")
+      .attr("class", "x axis bottom")
+      .attr("transform", makeTranslate(0, chartHeight))
+      .call(xAxisBottom);
+  }
 
-  // Render axes to chart.
-  chartElement
-    .append("g")
-    .attr("class", "x axis")
-    .attr("transform", makeTranslate(0, chartHeight))
-    .call(xAxis);
+  if (showXAxisTop) {
+    var xAxisTop = d3
+      .axisTop()
+      .scale(xScale)
+      .tickFormat(function(d, i) {
+        return d3.format(xAxisFormat)(d);
+      });
 
-  chartElement
-    .append("g")
-    .attr("class", "y axis")
-    .call(yAxis);
+    chartElement
+      .append("g")
+      .attr("class", "x axis top")
+      .call(xAxisTop);
+  }
+
+  if (showYAxisLeft) {
+    var yAxisLeft = d3
+      .axisLeft()
+      .scale(yScale)
+      .ticks(ticksY)
+      .tickFormat(function(d) {
+        return d3.format(yAxisFormat)(d);
+      });
+
+    chartElement
+      .append("g")
+      .attr("class", "y axis left")
+      .call(yAxisLeft);
+  }
+
+  if (showYAxisRight) {
+    var yAxisRight = d3
+      .axisRight()
+      .scale(yScale)
+      .ticks(ticksY)
+      .tickFormat(function(d) {
+        return d3.format(yAxisFormat)(d);
+      });
+
+    chartElement
+      .append("g")
+      .attr("class", "y axis right")
+      .attr("transform", makeTranslate(chartWidth, 0))
+      .call(yAxisRight);
+  }
 
   // Render grid to chart.
-  var yAxisGrid = function() {
-    return yAxis;
-  };
+  if (showYAxisGrid) {
+    var yAxisGrid = d3
+      .axisLeft()
+      .scale(yScale)
+      .ticks(ticksY)
+      .tickSize(-chartWidth, 0)
+      .tickFormat("");
 
-  chartElement
-    .append("g")
-    .attr("class", "y grid")
-    .call(
-      yAxisGrid()
-        .tickSize(-chartWidth, 0)
-        .tickFormat("")
-    );
+    chartElement
+      .append("g")
+      .attr("class", "y grid")
+      .call(yAxisGrid);
+  }
 
   // Render bars to chart.
   chartElement
@@ -193,74 +261,67 @@ var renderColumnChart = function(config) {
     })
     .attr("width", xScale.bandwidth())
     .attr("height", function(d) {
-      if (d[valueColumn] < 0) {
-        return yScale(d[valueColumn]) - yScale(0);
-      }
-
-      return yScale(0) - yScale(d[valueColumn]);
+      return Math.abs(yScale(0) - yScale(d[valueColumn]));
     })
     .attr("class", function(d) {
       return "bar bar-" + d[labelColumn];
-    });
+    })
+    .attr("fill", d => lookupColor(d.fill));
 
   // Render 0 value line.
-  if (min < 0) {
-    chartElement
-      .append("line")
-      .attr("class", "zero-line")
-      .attr("x1", 0)
-      .attr("x2", chartWidth)
-      .attr("y1", yScale(0))
-      .attr("y2", yScale(0));
-  }
+  chartElement
+    .append("line")
+    .attr("class", "zero-line")
+    .attr("x1", 0)
+    .attr("x2", chartWidth)
+    .attr("y1", yScale(0))
+    .attr("y2", yScale(0));
 
   // Render bar values.
-  chartElement
-    .append("g")
-    .attr("class", "value")
-    .selectAll("text")
-    .data(config.data)
-    .enter()
-    .append("text")
-    .text(function(d) {
-      return d[valueColumn].toFixed(0);
-    })
-    .attr("x", function(d, i) {
-      return xScale(d[labelColumn]) + xScale.bandwidth() / 2;
-    })
-    .attr("y", function(d) {
-      return yScale(d[valueColumn]);
-    })
-    .attr("dy", function(d) {
-      var textHeight = d3
-        .select(this)
-        .node()
-        .getBBox().height;
-      var barHeight = 0;
+  if (showColumnValues) {
+    chartElement
+      .append("g")
+      .attr("class", "value")
+      .selectAll("text")
+      .data(config.data)
+      .enter()
+      .append("text")
+      .text(function(d) {
+        return d3.format(valueFormat)(d[valueColumn]);
+      })
+      .attr("x", function(d, i) {
+        return xScale(d[labelColumn]) + xScale.bandwidth() / 2;
+      })
+      .attr("y", function(d) {
+        return yScale(d[valueColumn]);
+      })
+      .attr("dy", function(d) {
+        var textHeight = d3
+          .select(this)
+          .node()
+          .getBBox().height;
+        var barHeight = Math.abs(yScale(d[valueColumn]) - yScale(0));
 
-      if (d[valueColumn] < 0) {
-        barHeight = yScale(d[valueColumn]) - yScale(0);
-
-        if (textHeight + valueGap * 2 < barHeight) {
-          d3.select(this).classed("in", true);
-          return -(textHeight - valueGap / 2);
+        if (d[valueColumn] < 0) {
+          if (textHeight + valueGap * 2 < barHeight) {
+            d3.select(this).classed("in", true);
+            return -(textHeight - valueGap / 2);
+          } else {
+            d3.select(this).classed("out", true);
+            return textHeight + valueGap;
+          }
         } else {
-          d3.select(this).classed("out", true);
-          return textHeight + valueGap;
+          if (textHeight + valueGap * 2 < barHeight) {
+            d3.select(this).classed("in", true);
+            return textHeight + valueGap;
+          } else {
+            d3.select(this).classed("out", true);
+            return -(textHeight - valueGap / 2);
+          }
         }
-      } else {
-        barHeight = yScale(0) - yScale(d[valueColumn]);
-
-        if (textHeight + valueGap * 2 < barHeight) {
-          d3.select(this).classed("in", true);
-          return textHeight + valueGap;
-        } else {
-          d3.select(this).classed("out", true);
-          return -(textHeight - valueGap / 2);
-        }
-      }
-    })
-    .attr("text-anchor", "middle");
+      })
+      .attr("text-anchor", "middle");
+  }
 };
 
 //Initially load the graphic
