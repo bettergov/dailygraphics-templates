@@ -1,6 +1,5 @@
 var pym = require("./lib/pym");
 var ANALYTICS = require("./lib/analytics");
-require("./lib/webfonts");
 var { isMobile } = require("./lib/breakpoints");
 var { flow, mapValues, omitBy, forEach } = require("lodash/fp");
 
@@ -14,6 +13,92 @@ var d3 = Object.assign(
   require("d3-scale"),
   require("d3-selection")
 );
+
+d3.selection.prototype.first = function() {
+  return d3.select(this.nodes()[0]);
+};
+
+d3.selection.prototype.last = function() {
+  var last = this.size() - 1;
+  return d3.select(this.nodes()[last]);
+};
+
+// https://github.com/wbkd/d3-extended
+d3.selection.prototype.moveToFront = function() {
+  return this.each(function() {
+    this.parentNode.appendChild(this);
+  });
+};
+
+d3.selection.prototype.moveToBack = function() {
+  return this.each(function() {
+    var firstChild = this.parentNode.firstChild;
+    if (firstChild) {
+      this.parentNode.insertBefore(this, firstChild);
+    }
+  });
+};
+
+function alterTickLabel(
+  tickSelection,
+  labelPrefix = "",
+  labelSuffix = "",
+  tickSize = 6
+) {
+  let translateX = 0,
+    translateY = 0;
+
+  // calculate text length of prefix
+  tickSelection
+    .append("text")
+    .attr("xml:space", "preserve")
+    .text(labelPrefix)
+    .each(function() {
+      translateX -= this.getComputedTextLength();
+      this.remove();
+    });
+
+  // calculate text length of suffix
+  tickSelection
+    .append("text")
+    .attr("xml:space", "preserve")
+    .text(labelSuffix)
+    .each(function() {
+      translateX += this.getComputedTextLength();
+      this.remove();
+    });
+
+  // modify label
+  tickSelection
+    .attr("transform", function() {
+      // https://stackoverflow.com/a/10358266
+      var xforms = this.getAttribute("transform");
+      var parts = /translate\(\s*([^\s,)]+)[ ,]([^\s,)]+)/.exec(xforms);
+      var firstX = parts[1],
+        firstY = parts[2];
+
+      return makeTranslate(firstX + translateX, firstY + translateY);
+    })
+    .select("text")
+    .text(function() {
+      return labelPrefix + tickSelection.text() + labelSuffix;
+    });
+
+  // add background box to label
+  var bbox = tickSelection
+    .select("text")
+    .node()
+    .getBBox();
+
+  tickSelection
+    .append("rect")
+    .attr("x", bbox.x)
+    .attr("y", bbox.y)
+    .attr("width", bbox.width + tickSize)
+    .attr("height", bbox.height)
+    .style("fill", "white")
+    .moveToBack();
+}
 
 var {
   COLORS,
@@ -63,10 +148,16 @@ var render = function(containerWidth) {
     omitBy(d => d == null)
   )(PROPS);
 
+  // Parse data.
+  var data = forEach((val, key) => {
+    val[props.valueColumn] = parseNumber(val[props.valueColumn]);
+    return val;
+  })(DATA);
+
   renderColumnChart({
     container,
     width,
-    data: DATA,
+    data,
     props
   });
 
@@ -94,6 +185,7 @@ var renderColumnChart = function(config) {
     xScaleAlign,
     showXAxisTop,
     showXAxisBottom,
+    xAxisTickValues,
     /* y axis */
     ticksY,
     roundTicksFactor,
@@ -102,6 +194,8 @@ var renderColumnChart = function(config) {
     showYAxisLeft,
     showYAxisRight,
     showYAxisGrid,
+    yAxisLastBefore = "",
+    yAxisLastAfter = "",
     /* margins */
     marginTop,
     marginRight,
@@ -172,13 +266,16 @@ var renderColumnChart = function(config) {
       .scale(xScale)
       .tickFormat(function(d, i) {
         return d3.format(xAxisFormat)(d);
-      });
+      })
+      .tickValues(xAxisTickValues && xAxisTickValues.split(", "));
 
     chartElement
       .append("g")
       .attr("class", "x axis bottom")
       .attr("transform", makeTranslate(0, chartHeight))
-      .call(xAxisBottom);
+      .call(xAxisBottom)
+      .select(".domain")
+      .style("display", "none");
   }
 
   if (showXAxisTop) {
@@ -187,12 +284,30 @@ var renderColumnChart = function(config) {
       .scale(xScale)
       .tickFormat(function(d, i) {
         return d3.format(xAxisFormat)(d);
-      });
+      })
+      .tickValues(xAxisTickValues && xAxisTickValues.split(", "));
 
     chartElement
       .append("g")
       .attr("class", "x axis top")
-      .call(xAxisTop);
+      .call(xAxisTop)
+      .select(".domain")
+      .style("display", "none");
+  }
+
+  // Render grid to chart.
+  if (showYAxisGrid) {
+    var yAxisGrid = d3
+      .axisLeft()
+      .scale(yScale)
+      .ticks(ticksY)
+      .tickSize(-chartWidth, 0)
+      .tickFormat("");
+
+    chartElement
+      .append("g")
+      .attr("class", "y grid")
+      .call(yAxisGrid);
   }
 
   if (showYAxisLeft) {
@@ -208,6 +323,13 @@ var renderColumnChart = function(config) {
       .append("g")
       .attr("class", "y axis left")
       .call(yAxisLeft);
+
+    alterTickLabel(
+      d3.selectAll(".y.axis .tick").last(),
+      yAxisLastBefore,
+      yAxisLastAfter,
+      yAxisLeft.tickSize()
+    );
   }
 
   if (showYAxisRight) {
@@ -224,21 +346,6 @@ var renderColumnChart = function(config) {
       .attr("class", "y axis right")
       .attr("transform", makeTranslate(chartWidth, 0))
       .call(yAxisRight);
-  }
-
-  // Render grid to chart.
-  if (showYAxisGrid) {
-    var yAxisGrid = d3
-      .axisLeft()
-      .scale(yScale)
-      .ticks(ticksY)
-      .tickSize(-chartWidth, 0)
-      .tickFormat("");
-
-    chartElement
-      .append("g")
-      .attr("class", "y grid")
-      .call(yAxisGrid);
   }
 
   // Render bars to chart.
