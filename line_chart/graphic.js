@@ -2,11 +2,12 @@ var pym = require("./lib/pym");
 var ANALYTICS = require("./lib/analytics");
 require("./lib/webfonts");
 var { isMobile } = require("./lib/breakpoints");
+var { flow, map, mapValues, omitBy, forEach } = require("lodash/fp");
 
 var dataSeries = [];
 var pymChild;
 
-var { COLORS, classify, makeTranslate } = require("./lib/helpers");
+var { COLORS, classify, makeTranslate, parseNumber } = require("./lib/helpers");
 var d3 = {
   ...require("d3-axis/dist/d3-axis.min"),
   ...require("d3-scale/dist/d3-scale.min"),
@@ -42,9 +43,12 @@ var onWindowLoaded = function() {
 //Format graphic data for processing by D3.
 var formatData = function() {
   DATA.forEach(function(d) {
-    var [m, day, y] = d.date.split("/").map(Number);
-    y = y > 50 ? 1900 + y : 2000 + y;
-    d.date = new Date(y, m - 1, day);
+    try {
+      d.date = new Date(d.date);
+    } catch (err) {
+      d.meta = d.date;
+      delete d.date;
+    }
   });
 
   // Restructure tabular data for easier charting.
@@ -68,10 +72,37 @@ var render = function() {
   var container = "#line-chart";
   var element = document.querySelector(container);
   var width = element.offsetWidth;
+
+  const parseValue = d => {
+    switch (d.type) {
+      case "number":
+        return parseNumber(d.use_value);
+      default:
+        return d.use_value;
+    }
+  };
+
+  const loadMobile = d => {
+    if (d.value_mobile && isMobile.matches) {
+      d.use_value = d.value_mobile;
+    } else {
+      d.use_value = d.value;
+    }
+
+    return d;
+  };
+
+  var props = flow(
+    mapValues(loadMobile),
+    mapValues(parseValue),
+    omitBy(d => d == null)
+  )(PROPS);
+
   renderLineChart({
     container,
     width,
-    data: dataSeries
+    data: dataSeries,
+    props
   });
 
   // Update iframe
@@ -82,31 +113,33 @@ var render = function() {
 
 // Render a line chart.
 var renderLineChart = function(config) {
-  // Setup
+  var {
+    dateColumn,
+    /* axes */
+    ticksX,
+    ticksY,
+    roundTicksFactor,
+    yMin,
+    yMax,
+    /* margins */
+    marginTop,
+    marginRight,
+    marginBottom,
+    marginLeft
+  } = config.props;
 
-  var dateColumn = "date";
+  // Setup
   var valueColumn = "amt";
 
   var aspectWidth = isMobile.matches ? 4 : 16;
   var aspectHeight = isMobile.matches ? 3 : 9;
 
   var margins = {
-    top: 5,
-    right: 75,
-    bottom: 20,
-    left: 30
+    top: marginTop,
+    right: marginRight,
+    bottom: marginBottom,
+    left: marginLeft
   };
-
-  var ticksX = 10;
-  var ticksY = 10;
-  var roundTicksFactor = 5;
-
-  // Mobile
-  if (isMobile.matches) {
-    ticksX = 5;
-    ticksY = 5;
-    margins.right = 25;
-  }
 
   // Calculate actual chart dimensions
   var chartWidth = config.width - margins.left - margins.right;
@@ -119,7 +152,7 @@ var renderLineChart = function(config) {
   var containerElement = d3.select(config.container);
   containerElement.html("");
 
-  var dates = config.data[0].values.map(d => d.date);
+  var dates = config.data[0].values.map(d => d[dateColumn]);
   var extent = [dates[0], dates[dates.length - 1]];
 
   var xScale = d3
@@ -127,28 +160,9 @@ var renderLineChart = function(config) {
     .domain(extent)
     .range([0, chartWidth]);
 
-  var values = config.data.reduce(
-    (acc, d) => acc.concat(d.values.map(v => v[valueColumn])),
-    []
-  );
-
-  var floors = values.map(
-    v => Math.floor(v / roundTicksFactor) * roundTicksFactor
-  );
-  var min = Math.min.apply(null, floors);
-
-  if (min > 0) {
-    min = 0;
-  }
-
-  var ceilings = values.map(
-    v => Math.ceil(v / roundTicksFactor) * roundTicksFactor
-  );
-  var max = Math.max.apply(null, ceilings);
-
   var yScale = d3
     .scaleLinear()
-    .domain([min, max])
+    .domain([yMin, yMax])
     .range([chartHeight, 0]);
 
   var colorScale = d3
@@ -257,7 +271,7 @@ var renderLineChart = function(config) {
 
   // Render 0 value line.
 
-  if (min < 0) {
+  if (yMin < 0) {
     chartElement
       .append("line")
       .attr("class", "zero-line")
