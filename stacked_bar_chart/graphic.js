@@ -2,6 +2,7 @@ var pym = require("./lib/pym");
 var ANALYTICS = require("./lib/analytics");
 require("./lib/webfonts");
 var { isMobile } = require("./lib/breakpoints");
+var { flow, mapValues, omitBy } = require("lodash/fp");
 
 // Global vars
 var pymChild = null;
@@ -9,11 +10,18 @@ var skipLabels = ["label", "values"];
 
 var d3 = {
   ...require("d3-axis"),
+  ...require("d3-format"),
   ...require("d3-scale"),
   ...require("d3-selection")
 };
 
-var { COLORS, classify, makeTranslate, formatStyle } = require("./lib/helpers");
+var {
+  COLORS,
+  classify,
+  makeTranslate,
+  formatStyle,
+  parseNumber
+} = require("./lib/helpers");
 
 // Initialize the graphic.
 var onWindowLoaded = function() {
@@ -68,10 +76,37 @@ var render = function() {
   var container = "#stacked-bar-chart";
   var element = document.querySelector(container);
   var width = element.offsetWidth;
+
+  const parseValue = d => {
+    switch (d.type) {
+      case "number":
+        return parseNumber(d.use_value);
+      default:
+        return d.use_value;
+    }
+  };
+
+  const loadMobile = d => {
+    if (d.value_mobile && isMobile.matches) {
+      d.use_value = d.value_mobile;
+    } else {
+      d.use_value = d.value;
+    }
+
+    return d;
+  };
+
+  var props = flow(
+    mapValues(loadMobile),
+    mapValues(parseValue),
+    omitBy(d => d == null)
+  )(PROPS);
+
   renderStackedBarChart({
     container,
     width,
-    data: DATA
+    data: DATA,
+    props
   });
 
   // Update iframe
@@ -83,27 +118,39 @@ var render = function() {
 // Render a stacked bar chart.
 var renderStackedBarChart = function(config) {
   // Setup
-  var labelColumn = "label";
-
-  var barHeight = 30;
-  var barGap = 5;
-  var labelWidth = 60;
-  var labelMargin = 6;
-  var valueGap = 6;
+  var {
+    /* data refs */
+    labelColumn,
+    /* bars */
+    barHeight,
+    barGap,
+    /* labels */
+    labelWidth,
+    labelMargin,
+    valueGap,
+    valueFormat = "",
+    showBarValues,
+    /* x axis */
+    ticksX,
+    roundTicksFactor,
+    showXAxisTop,
+    showXAxisBottom,
+    showXAxisGrid,
+    xMin,
+    xMax,
+    /* margins */
+    marginTop,
+    marginRight,
+    marginBottom,
+    marginLeft
+  } = config.props;
 
   var margins = {
-    top: 0,
-    right: 20,
-    bottom: 20,
-    left: labelWidth + labelMargin
+    top: marginTop,
+    right: marginRight,
+    bottom: marginBottom,
+    left: marginLeft
   };
-
-  var ticksX = 4;
-  var roundTicksFactor = 100;
-
-  if (isMobile.matches) {
-    ticksX = 2;
-  }
 
   // Calculate actual chart dimensions
   var chartWidth = config.width - margins.left - margins.right;
@@ -113,24 +160,9 @@ var renderStackedBarChart = function(config) {
   var containerElement = d3.select(config.container);
   containerElement.html("");
 
-  var values = config.data.map(d => d.values[d.values.length - 1].x1);
-  var floors = values.map(
-    v => Math.floor(v / roundTicksFactor) * roundTicksFactor
-  );
-  var ceilings = values.map(
-    v => Math.ceil(v / roundTicksFactor) * roundTicksFactor
-  );
-
-  var min = Math.min(...floors);
-  var max = Math.max(...ceilings);
-
-  if (min > 0) {
-    min = 0;
-  }
-
   var xScale = d3
     .scaleLinear()
-    .domain([min, max])
+    .domain([xMin, xMax])
     .rangeRound([0, chartWidth]);
 
   var colorScale = d3
@@ -167,31 +199,55 @@ var renderStackedBarChart = function(config) {
     .attr("transform", `translate(${margins.left},${margins.top})`);
 
   // Create D3 axes.
-  var xAxis = d3
-    .axisBottom()
-    .scale(xScale)
-    .ticks(ticksX)
-    .tickFormat(d => d + "%");
-
   // Render axes to chart.
-  chartElement
-    .append("g")
-    .attr("class", "x axis")
-    .attr("transform", makeTranslate(0, chartHeight))
-    .call(xAxis);
+  if (showXAxisBottom) {
+    var xAxisBottom = d3
+      .axisBottom()
+      .scale(xScale)
+      .ticks(ticksX)
+      .tickFormat(function(d) {
+        return d3.format(valueFormat)(d);
+      });
+
+    chartElement
+      .append("g")
+      .attr("class", "x axis bottom")
+      .attr("transform", makeTranslate(0, chartHeight))
+      .call(xAxisBottom);
+  }
+
+  if (showXAxisTop) {
+    var xAxisTop = d3
+      .axisTop()
+      .scale(xScale)
+      .ticks(ticksX)
+      .tickFormat(function(d) {
+        return d3.format(valueFormat)(d);
+      });
+
+    chartElement
+      .append("g")
+      .attr("class", "x axis top")
+      // .attr("transform", makeTranslate(0, chartHeight))
+      .call(xAxisTop);
+  }
 
   // Render grid to chart.
-  var xAxisGrid = () => xAxis;
+  if (showXAxisGrid) {
+    // Render grid to chart.
+    var xAxisGrid = d3
+      .axisBottom()
+      .scale(xScale)
+      .ticks(ticksX)
+      .tickSize(-chartHeight, 0, 0)
+      .tickFormat("");
 
-  chartElement
-    .append("g")
-    .attr("class", "x grid")
-    .attr("transform", makeTranslate(0, chartHeight))
-    .call(
-      xAxisGrid()
-        .tickSize(-chartHeight, 0, 0)
-        .tickFormat("")
-    );
+    chartElement
+      .append("g")
+      .attr("class", "x grid")
+      .attr("transform", makeTranslate(0, chartHeight))
+      .call(xAxisGrid);
+  }
 
   // Render bars to chart.
   var group = chartElement
@@ -219,35 +275,37 @@ var renderStackedBarChart = function(config) {
     .attr("class", d => classify(d.name));
 
   // Render bar values.
-  group
-    .append("g")
-    .attr("class", "value")
-    .selectAll("text")
-    .data(d => d.values)
-    .enter()
-    .append("text")
-    .text(d => (d.val ? d.val + "%" : null))
-    .attr("class", d => classify(d.name))
-    .attr("x", d => xScale(d.x1))
-    .attr("dx", function(d) {
-      var textWidth = this.getComputedTextLength();
-      var barWidth = Math.abs(xScale(d.x1) - xScale(d.x0));
+  if (showBarValues) {
+    group
+      .append("g")
+      .attr("class", "value")
+      .selectAll("text")
+      .data(d => d.values)
+      .enter()
+      .append("text")
+      .text(d => d3.format(valueFormat)(d.val))
+      .attr("class", d => classify(d.name))
+      .attr("x", d => xScale(d.x1))
+      .attr("dx", function(d) {
+        var textWidth = this.getComputedTextLength();
+        var barWidth = Math.abs(xScale(d.x1) - xScale(d.x0));
 
-      // Hide labels that don't fit
-      if (textWidth + valueGap * 2 > barWidth) {
-        d3.select(this).classed("hidden", true);
-      }
+        // Hide labels that don't fit
+        if (textWidth + valueGap * 2 > barWidth) {
+          d3.select(this).classed("hidden", true);
+        }
 
-      if (d.x1 < 0) {
-        return valueGap;
-      }
+        if (d.x1 < 0) {
+          return valueGap;
+        }
 
-      return -(valueGap + textWidth);
-    })
-    .attr("dy", barHeight / 2 + 4);
+        return -(valueGap + textWidth);
+      })
+      .attr("dy", barHeight / 2 + 4);
+  }
 
   // Render 0-line.
-  if (min < 0) {
+  if (xMin <= 0) {
     chartElement
       .append("line")
       .attr("class", "zero-line")
