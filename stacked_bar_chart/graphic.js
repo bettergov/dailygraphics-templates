@@ -6,7 +6,7 @@ var { flow, mapValues, omitBy } = require("lodash/fp");
 
 // Global vars
 var pymChild = null;
-var skipLabels = ["label", "values"];
+var skipLabels = ["label", "values", "offset"];
 
 var d3 = {
   ...require("d3-axis"),
@@ -46,26 +46,47 @@ var onWindowLoaded = function() {
 
 // Format graphic data for processing by D3.
 var formatData = function() {
-  DATA.forEach(function(d) {
-    var x0 = 0;
-
+  DATA.forEach(d => {
     d.values = [];
 
-    for (var key in d) {
+    var x0 = 0;
+
+    if ("offset" in d) {
+      d.offset = +d.offset;
+      x0 = d.offset;
+    }
+
+    var x0pos = x0,
+      x0neg = x0;
+
+    for (let key in d) {
       if (skipLabels.indexOf(key) > -1) {
         continue;
       }
 
-      var x1 = x0 + d[key];
+      if (d[key] > 0) {
+        var x1 = x0pos + d[key];
 
-      d.values.push({
-        name: key,
-        x0: x0,
-        x1: x1,
-        val: d[key]
-      });
+        d.values.push({
+          name: key,
+          x0: x0pos,
+          x1,
+          val: d[key]
+        });
 
-      x0 = x1;
+        x0pos = x1;
+      } else if (d[key] < 0) {
+        var x1 = x0neg + d[key];
+
+        d.values.push({
+          name: key,
+          x0: x0neg,
+          x1,
+          val: d[key]
+        });
+
+        x0neg = x1;
+      }
     }
   });
 };
@@ -248,6 +269,14 @@ var renderStackedBarChart = function(config) {
       .attr("transform", makeTranslate(0, chartHeight))
       .call(xAxisGrid);
   }
+
+  // console.log(config.data);
+
+  // stack data
+  // var stack = d3.stack().keys(Object.keys(config.data[0]));
+  // var stack = d3.stack().keys()
+
+  // console.log(stack(config.data));
 
   // Render bars to chart.
   var group = chartElement
