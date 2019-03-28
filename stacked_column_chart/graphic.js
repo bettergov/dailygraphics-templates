@@ -2,17 +2,18 @@ var pym = require("./lib/pym");
 var ANALYTICS = require("./lib/analytics");
 require("./lib/webfonts");
 var { isMobile } = require("./lib/breakpoints");
+var { flow, mapValues, omitBy } = require("lodash/fp");
 
 // Global vars
 var pymChild = null;
 var skipLabels = ["label", "values", "total"];
-var { COLORS, makeTranslate, classify } = require("./lib/helpers");
-console.clear();
+var { COLORS, makeTranslate, classify, parseNumber } = require("./lib/helpers");
 
 var d3 = {
   ...require("d3-axis"),
   ...require("d3-scale"),
-  ...require("d3-selection")
+  ...require("d3-selection"),
+  ...require("d3-format")
 };
 
 // Initialize the graphic.
@@ -40,29 +41,49 @@ var onWindowLoaded = function() {
 // Format graphic data for processing by D3.
 var formatData = function(data) {
   data.forEach(function(d) {
+    d.values = [];
     var y0 = 0;
 
-    d.values = [];
     d.total = 0;
 
-    for (var key in d) {
+    if ("offset" in d) {
+      d.offset = +d.offset;
+      y0 = d.offset;
+    }
+
+    var y0pos = y0,
+      y0neg = y0;
+
+    for (let key in d) {
       if (skipLabels.indexOf(key) > -1) {
         continue;
       }
 
-      d[key] = +d[key];
-
-      var y1 = y0 + d[key];
       d.total += d[key];
 
-      d.values.push({
-        name: key,
-        y0: y0,
-        y1: y1,
-        val: d[key]
-      });
+      if (d[key] > 0) {
+        var y1 = y0pos + d[key];
 
-      y0 = y1;
+        d.values.push({
+          name: key,
+          y0: y0pos,
+          y1,
+          val: d[key]
+        });
+
+        y0pos = y1;
+      } else if (d[key] < 0) {
+        var y1 = y0neg + d[key];
+
+        d.values.push({
+          name: key,
+          y0: y0neg,
+          y1,
+          val: d[key]
+        });
+
+        y0neg = y1;
+      }
     }
   });
   return data;
@@ -73,11 +94,37 @@ var render = function(containerWidth) {
   var container = "#stacked-column-chart";
   var element = document.querySelector(container);
   var width = element.offsetWidth;
-  // Render the chart!
+
+  const parseValue = d => {
+    switch (d.type) {
+      case "number":
+        return parseNumber(d.use_value);
+      default:
+        return d.use_value;
+    }
+  };
+
+  const loadMobile = d => {
+    if (d.value_mobile && isMobile.matches) {
+      d.use_value = d.value_mobile;
+    } else {
+      d.use_value = d.value;
+    }
+
+    return d;
+  };
+
+  var props = flow(
+    mapValues(loadMobile),
+    mapValues(parseValue),
+    omitBy(d => d == null)
+  )(PROPS);
+
   renderStackedColumnChart({
     container,
     width,
-    data: DATA
+    data: DATA,
+    props
   });
 
   // Update iframe
@@ -89,26 +136,34 @@ var render = function(containerWidth) {
 // Render a stacked column chart.
 var renderStackedColumnChart = function(config) {
   // Setup
-  var labelColumn = "label";
-
-  var aspectWidth = 16;
-  var aspectHeight = 9;
-  var valueGap = 6;
+  var {
+    /* data refs */
+    labelColumn,
+    aspectWidth,
+    aspectHeight,
+    /* labels */
+    valueGap,
+    showBarValues,
+    valueFormat,
+    /* axes */
+    ticksY,
+    roundTicksFactor,
+    yMin,
+    yMax,
+    xAxisTickValues,
+    /* margins */
+    marginTop,
+    marginRight,
+    marginBottom,
+    marginLeft
+  } = config.props;
 
   var margins = {
-    top: 5,
-    right: 5,
-    bottom: 20,
-    left: 30
+    top: marginTop,
+    right: marginRight,
+    bottom: marginBottom,
+    left: marginLeft
   };
-
-  var ticksY = 5;
-  var roundTicksFactor = 50;
-
-  if (isMobile.matches) {
-    aspectWidth = 4;
-    aspectHeight = 3;
-  }
 
   // Calculate actual chart dimensions
   var chartWidth = config.width - margins.left - margins.right;
@@ -130,24 +185,9 @@ var renderStackedColumnChart = function(config) {
     .range([0, chartWidth])
     .padding(0.1);
 
-  var values = config.data.map(d => d.total);
-  var floors = values.map(
-    v => Math.floor(v / roundTicksFactor) * roundTicksFactor
-  );
-  var ceilings = values.map(
-    v => Math.ceil(v / roundTicksFactor) * roundTicksFactor
-  );
-
-  var min = Math.min(...floors);
-  var max = Math.max(...ceilings);
-
-  if (min > 0) {
-    min = 0;
-  }
-
   var yScale = d3
     .scaleLinear()
-    .domain([min, max])
+    .domain([yMin, yMax])
     .rangeRound([chartHeight, 0]);
 
   var colorScale = d3
@@ -193,13 +233,14 @@ var renderStackedColumnChart = function(config) {
   var xAxis = d3
     .axisBottom()
     .scale(xScale)
-    .tickFormat(d => d);
+    .tickFormat(d => d)
+    .tickValues(xAxisTickValues && xAxisTickValues.split(", "));
 
   var yAxis = d3
     .axisLeft()
     .scale(yScale)
     .ticks(ticksY)
-    .tickFormat(d => d);
+    .tickFormat(d => d3.format(valueFormat)(d));
 
   // Render axes to chart.
   chartElement
@@ -262,49 +303,49 @@ var renderStackedColumnChart = function(config) {
     });
 
   // Render 0 value line.
-  if (min < 0) {
-    chartElement
-      .append("line")
-      .attr("class", "zero-line")
-      .attr("x1", 0)
-      .attr("x2", chartWidth)
-      .attr("y1", yScale(0))
-      .attr("y2", yScale(0));
-  }
+  chartElement
+    .append("line")
+    .attr("class", "zero-line")
+    .attr("x1", 0)
+    .attr("x2", chartWidth)
+    .attr("y1", yScale(0))
+    .attr("y2", yScale(0));
 
   // Render values to chart.
-  bars
-    .selectAll("text")
-    .data(function(d) {
-      return d.values;
-    })
-    .enter()
-    .append("text")
-    .text(function(d) {
-      return d.val;
-    })
-    .attr("class", function(d) {
-      return classify(d.name);
-    })
-    .attr("x", function(d) {
-      return xScale.bandwidth() / 2;
-    })
-    .attr("y", function(d) {
-      var textHeight = d3
-        .select(this)
-        .node()
-        .getBBox().height;
-      var barHeight = Math.abs(yScale(d.y0) - yScale(d.y1));
+  if (showBarValues) {
+    bars
+      .selectAll("text")
+      .data(function(d) {
+        return d.values;
+      })
+      .enter()
+      .append("text")
+      .text(function(d) {
+        return d3.format(valueFormat)(d.val);
+      })
+      .attr("class", function(d) {
+        return classify(d.name);
+      })
+      .attr("x", function(d) {
+        return xScale.bandwidth() / 2;
+      })
+      .attr("y", function(d) {
+        var textHeight = d3
+          .select(this)
+          .node()
+          .getBBox().height;
+        var barHeight = Math.abs(yScale(d.y0) - yScale(d.y1));
 
-      if (textHeight + valueGap * 2 > barHeight) {
-        d3.select(this).classed("hidden", true);
-      }
+        if (textHeight + valueGap * 2 > barHeight) {
+          d3.select(this).classed("hidden", true);
+        }
 
-      var barCenter = yScale(d.y1) + (yScale(d.y0) - yScale(d.y1)) / 2;
+        var barCenter = yScale(d.y1) + (yScale(d.y0) - yScale(d.y1)) / 2;
 
-      return barCenter + textHeight / 2;
-    })
-    .attr("text-anchor", "middle");
+        return barCenter + textHeight / 2;
+      })
+      .attr("text-anchor", "middle");
+  }
 };
 
 // Initially load the graphic
