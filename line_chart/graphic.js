@@ -9,11 +9,11 @@ var pymChild;
 
 var { COLORS, classify, makeTranslate, parseNumber } = require("./lib/helpers");
 var d3 = {
-  ...require("d3-axis/dist/d3-axis.min"),
-  ...require("d3-scale/dist/d3-scale.min"),
-  ...require("d3-selection/dist/d3-selection.min"),
-  ...require("d3-shape/dist/d3-shape.min"),
-  ...require("d3-interpolate/dist/d3-interpolate.min")
+  ...require("d3-axis"),
+  ...require("d3-scale"),
+  ...require("d3-selection"),
+  ...require("d3-shape"),
+  ...require("d3-interpolate")
 };
 
 var fmtYearAbbrev = d => (d.getFullYear() + "").slice(-2);

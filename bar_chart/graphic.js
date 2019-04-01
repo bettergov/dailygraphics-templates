@@ -17,10 +17,10 @@ const {
 } = require("./lib/helpers");
 
 var d3 = {
-  ...require("d3-axis/dist/d3-axis.min"),
-  ...require("d3-format/dist/d3-format.min"),
-  ...require("d3-scale/dist/d3-scale.min"),
-  ...require("d3-selection/dist/d3-selection.min")
+  ...require("d3-axis"),
+  ...require("d3-format"),
+  ...require("d3-scale"),
+  ...require("d3-selection")
 };
 
 // Initialize the graphic.
