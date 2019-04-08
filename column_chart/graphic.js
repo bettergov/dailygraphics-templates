@@ -1,6 +1,5 @@
 var pym = require("./lib/pym");
 var ANALYTICS = require("./lib/analytics");
-var { isMobile } = require("./lib/breakpoints");
 var { forEach } = require("lodash/fp");
 
 // Global vars

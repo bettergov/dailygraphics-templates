@@ -2,7 +2,6 @@ var pym = require("./lib/pym");
 var ANALYTICS = require("./lib/analytics");
 require("./lib/webfonts");
 var { isMobile } = require("./lib/breakpoints");
-var { flow, map, mapValues, omitBy, forEach } = require("lodash/fp");
 
 var dataSeries = [];
 var pymChild;

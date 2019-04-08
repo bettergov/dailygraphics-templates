@@ -1,8 +1,6 @@
 var pym = require("./lib/pym");
 var ANALYTICS = require("./lib/analytics");
 require("./lib/webfonts");
-var { isMobile } = require("./lib/breakpoints");
-var { flow, mapValues, omitBy } = require("lodash/fp");
 
 // Global vars
 var pymChild = null;
