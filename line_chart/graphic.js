@@ -95,6 +95,8 @@ var render = function() {
 var renderLineChart = function(config) {
   var {
     margins,
+    aspectWidth,
+    aspectHeight,
     dateColumn,
     /* axes */
     ticksX,
@@ -106,9 +108,6 @@ var renderLineChart = function(config) {
 
   // Setup
   var valueColumn = "amt";
-
-  var aspectWidth = isMobile.matches ? 4 : 16;
-  var aspectHeight = isMobile.matches ? 3 : 9;
 
   // Calculate actual chart dimensions
   var chartWidth = config.width - margins.left - margins.right;

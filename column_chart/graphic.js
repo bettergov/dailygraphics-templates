@@ -158,6 +158,8 @@ var render = function(containerWidth) {
 var renderColumnChart = function(config) {
   var {
     margins,
+    aspectWidth,
+    aspectHeight,
     /* data refs */
     labelColumn,
     valueColumn,
@@ -187,9 +189,6 @@ var renderColumnChart = function(config) {
     maxChartHeight = 9999
   } = config.props;
   // Setup chart container
-
-  var aspectWidth = isMobile.matches ? 4 : 16;
-  var aspectHeight = isMobile.matches ? 3 : 9;
 
   // Calculate actual chart dimensions
   var chartWidth = config.width - margins.left - margins.right;
