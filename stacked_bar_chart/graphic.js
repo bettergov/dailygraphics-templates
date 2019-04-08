@@ -20,6 +20,7 @@ var {
   classify,
   makeTranslate,
   formatStyle,
+  nestStringProperties,
   parseNumber
 } = require("./lib/helpers");
 
@@ -120,7 +121,8 @@ var render = function() {
   var props = flow(
     mapValues(loadMobile),
     mapValues(parseValue),
-    omitBy(d => d == null)
+    omitBy(d => d == null),
+    nestStringProperties
   )(PROPS);
 
   renderStackedBarChart({
@@ -140,6 +142,7 @@ var render = function() {
 var renderStackedBarChart = function(config) {
   // Setup
   var {
+    margins,
     /* data refs */
     labelColumn,
     /* bars */
@@ -158,20 +161,8 @@ var renderStackedBarChart = function(config) {
     showXAxisBottom,
     showXAxisGrid,
     xMin,
-    xMax,
-    /* margins */
-    marginTop,
-    marginRight,
-    marginBottom,
-    marginLeft
+    xMax
   } = config.props;
-
-  var margins = {
-    top: marginTop,
-    right: marginRight,
-    bottom: marginBottom,
-    left: marginLeft
-  };
 
   // Calculate actual chart dimensions
   var chartWidth = config.width - margins.left - margins.right;

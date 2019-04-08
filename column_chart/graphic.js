@@ -104,6 +104,7 @@ var {
   COLORS,
   makeTranslate,
   lookupColor,
+  nestStringProperties,
   parseNumber
 } = require("./lib/helpers");
 
@@ -145,7 +146,8 @@ var render = function(containerWidth) {
 
   var props = flow(
     mapValues(parseValue),
-    omitBy(d => d == null)
+    omitBy(d => d == null),
+    nestStringProperties
   )(PROPS);
 
   // Parse data.
@@ -170,6 +172,7 @@ var render = function(containerWidth) {
 // Render a column chart.
 var renderColumnChart = function(config) {
   var {
+    margins,
     /* data refs */
     labelColumn,
     valueColumn,
@@ -196,24 +199,12 @@ var renderColumnChart = function(config) {
     showYAxisGrid,
     yAxisLastBefore = "",
     yAxisLastAfter = "",
-    /* margins */
-    marginTop,
-    marginRight,
-    marginBottom,
-    marginLeft,
     maxChartHeight = 9999
   } = config.props;
   // Setup chart container
 
   var aspectWidth = isMobile.matches ? 4 : 16;
   var aspectHeight = isMobile.matches ? 3 : 9;
-
-  var margins = {
-    top: marginTop,
-    right: marginRight,
-    bottom: marginBottom,
-    left: marginLeft
-  };
 
   // Calculate actual chart dimensions
   var chartWidth = config.width - margins.left - margins.right;

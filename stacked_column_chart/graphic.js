@@ -7,7 +7,13 @@ var { flow, mapValues, omitBy } = require("lodash/fp");
 // Global vars
 var pymChild = null;
 var skipLabels = ["label", "values", "total"];
-var { COLORS, makeTranslate, classify, parseNumber } = require("./lib/helpers");
+var {
+  COLORS,
+  makeTranslate,
+  classify,
+  nestStringProperties,
+  parseNumber
+} = require("./lib/helpers");
 
 var d3 = {
   ...require("d3-axis"),
@@ -117,7 +123,8 @@ var render = function(containerWidth) {
   var props = flow(
     mapValues(loadMobile),
     mapValues(parseValue),
-    omitBy(d => d == null)
+    omitBy(d => d == null),
+    nestStringProperties
   )(PROPS);
 
   renderStackedColumnChart({
@@ -137,6 +144,7 @@ var render = function(containerWidth) {
 var renderStackedColumnChart = function(config) {
   // Setup
   var {
+    margins,
     /* data refs */
     labelColumn,
     aspectWidth,
@@ -150,20 +158,8 @@ var renderStackedColumnChart = function(config) {
     roundTicksFactor,
     yMin,
     yMax,
-    xAxisTickValues,
-    /* margins */
-    marginTop,
-    marginRight,
-    marginBottom,
-    marginLeft
+    xAxisTickValues
   } = config.props;
-
-  var margins = {
-    top: marginTop,
-    right: marginRight,
-    bottom: marginBottom,
-    left: marginLeft
-  };
 
   // Calculate actual chart dimensions
   var chartWidth = config.width - margins.left - margins.right;

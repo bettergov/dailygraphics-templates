@@ -13,6 +13,7 @@ const {
   classify,
   formatStyle,
   lookupColor,
+  nestStringProperties,
   parseNumber
 } = require("./lib/helpers");
 
@@ -61,7 +62,8 @@ var render = function() {
 
   var props = flow(
     mapValues(parseValue),
-    omitBy(d => d == null)
+    omitBy(d => d == null),
+    nestStringProperties
   )(PROPS);
 
   // Parse data.
@@ -87,6 +89,7 @@ var render = function() {
 var renderBarChart = function(config) {
   // Setup
   var {
+    margins,
     /* data refs */
     labelColumn,
     valueColumn,
@@ -106,20 +109,8 @@ var renderBarChart = function(config) {
     showXAxisBottom,
     showXAxisGrid,
     xMin,
-    xMax,
-    /* margins */
-    marginTop,
-    marginRight,
-    marginBottom,
-    marginLeft
+    xMax
   } = config.props;
-
-  var margins = {
-    top: marginTop,
-    right: marginRight,
-    bottom: marginBottom,
-    left: marginLeft
-  };
 
   // Calculate actual chart dimensions
   var chartWidth = config.width - margins.left - margins.right;

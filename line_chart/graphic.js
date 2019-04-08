@@ -7,7 +7,13 @@ var { flow, map, mapValues, omitBy, forEach } = require("lodash/fp");
 var dataSeries = [];
 var pymChild;
 
-var { COLORS, classify, makeTranslate, parseNumber } = require("./lib/helpers");
+var {
+  COLORS,
+  classify,
+  makeTranslate,
+  nestStringProperties,
+  parseNumber
+} = require("./lib/helpers");
 var d3 = {
   ...require("d3-axis"),
   ...require("d3-scale"),
@@ -95,7 +101,8 @@ var render = function() {
   var props = flow(
     mapValues(loadMobile),
     mapValues(parseValue),
-    omitBy(d => d == null)
+    omitBy(d => d == null),
+    nestStringProperties
   )(PROPS);
 
   renderLineChart({
@@ -114,18 +121,14 @@ var render = function() {
 // Render a line chart.
 var renderLineChart = function(config) {
   var {
+    margins,
     dateColumn,
     /* axes */
     ticksX,
     ticksY,
     roundTicksFactor,
     yMin,
-    yMax,
-    /* margins */
-    marginTop,
-    marginRight,
-    marginBottom,
-    marginLeft
+    yMax
   } = config.props;
 
   // Setup
@@ -133,13 +136,6 @@ var renderLineChart = function(config) {
 
   var aspectWidth = isMobile.matches ? 4 : 16;
   var aspectHeight = isMobile.matches ? 3 : 9;
-
-  var margins = {
-    top: marginTop,
-    right: marginRight,
-    bottom: marginBottom,
-    left: marginLeft
-  };
 
   // Calculate actual chart dimensions
   var chartWidth = config.width - margins.left - margins.right;
