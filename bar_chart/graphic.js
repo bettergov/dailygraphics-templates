@@ -2,8 +2,7 @@
 var pym = require("./lib/pym");
 var ANALYTICS = require("./lib/analytics");
 require("./lib/webfonts");
-var { isMobile } = require("./lib/breakpoints");
-var { flow, mapValues, omitBy, forEach } = require("lodash/fp");
+var { forEach } = require("lodash/fp");
 
 var pymChild;
 
@@ -13,8 +12,8 @@ const {
   classify,
   formatStyle,
   lookupColor,
-  nestStringProperties,
-  parseNumber
+  parseNumber,
+  processProps
 } = require("./lib/helpers");
 
 var d3 = {
@@ -51,21 +50,6 @@ var render = function() {
   var element = document.querySelector(container);
   var width = element.offsetWidth;
 
-  const parseValue = d => {
-    switch (d.type) {
-      case "number":
-        return parseNumber(d.value);
-      default:
-        return d.value;
-    }
-  };
-
-  var props = flow(
-    mapValues(parseValue),
-    omitBy(d => d == null),
-    nestStringProperties
-  )(PROPS);
-
   // Parse data.
   var data = forEach((val, key) => {
     val[props.valueColumn] = parseNumber(val[props.valueColumn]);
@@ -76,7 +60,7 @@ var render = function() {
     container,
     width,
     data,
-    props
+    props: processProps(PROPS)
   });
 
   // Update iframe

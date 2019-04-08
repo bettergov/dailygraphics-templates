@@ -1,7 +1,7 @@
 var pym = require("./lib/pym");
 var ANALYTICS = require("./lib/analytics");
 var { isMobile } = require("./lib/breakpoints");
-var { flow, mapValues, omitBy, forEach } = require("lodash/fp");
+var { forEach } = require("lodash/fp");
 
 // Global vars
 var pymChild = null;
@@ -104,8 +104,8 @@ var {
   COLORS,
   makeTranslate,
   lookupColor,
-  nestStringProperties,
-  parseNumber
+  parseNumber,
+  processProps
 } = require("./lib/helpers");
 
 // Initialize the graphic.
@@ -135,21 +135,6 @@ var render = function(containerWidth) {
   var element = document.querySelector(container);
   var width = element.offsetWidth;
 
-  const parseValue = d => {
-    switch (d.type) {
-      case "number":
-        return parseNumber(d.value);
-      default:
-        return d.value;
-    }
-  };
-
-  var props = flow(
-    mapValues(parseValue),
-    omitBy(d => d == null),
-    nestStringProperties
-  )(PROPS);
-
   // Parse data.
   var data = forEach((val, key) => {
     val[props.valueColumn] = parseNumber(val[props.valueColumn]);
@@ -160,7 +145,7 @@ var render = function(containerWidth) {
     container,
     width,
     data,
-    props
+    props: processProps(PROPS)
   });
 
   // Update iframe

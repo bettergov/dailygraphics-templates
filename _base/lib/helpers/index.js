@@ -15,6 +15,7 @@ module.exports = {
   makeTranslate: require("./makeTranslate"),
   nestStringProperties: require("./nestStringProperties"),
   parseNumber: require("./parseNumber"),
+  processProps: require("./processProps"),
   urlToLocation: require("./urlToLocation"),
   wrapText: require("./wrapText")
 };

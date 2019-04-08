@@ -1,8 +1,6 @@
 var pym = require("./lib/pym");
 var ANALYTICS = require("./lib/analytics");
 require("./lib/webfonts");
-var { isMobile } = require("./lib/breakpoints");
-var { flow, mapValues, omitBy } = require("lodash/fp");
 
 // Global vars
 var pymChild = null;
@@ -11,8 +9,7 @@ var {
   COLORS,
   makeTranslate,
   classify,
-  nestStringProperties,
-  parseNumber
+  processProps
 } = require("./lib/helpers");
 
 var d3 = {
@@ -101,37 +98,11 @@ var render = function(containerWidth) {
   var element = document.querySelector(container);
   var width = element.offsetWidth;
 
-  const parseValue = d => {
-    switch (d.type) {
-      case "number":
-        return parseNumber(d.use_value);
-      default:
-        return d.use_value;
-    }
-  };
-
-  const loadMobile = d => {
-    if (d.value_mobile && isMobile.matches) {
-      d.use_value = d.value_mobile;
-    } else {
-      d.use_value = d.value;
-    }
-
-    return d;
-  };
-
-  var props = flow(
-    mapValues(loadMobile),
-    mapValues(parseValue),
-    omitBy(d => d == null),
-    nestStringProperties
-  )(PROPS);
-
   renderStackedColumnChart({
     container,
     width,
     data: DATA,
-    props
+    props: processProps(PROPS)
   });
 
   // Update iframe

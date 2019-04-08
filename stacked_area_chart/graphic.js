@@ -11,8 +11,7 @@ var {
   COLORS,
   classify,
   makeTranslate,
-  nestStringProperties,
-  parseNumber
+  processProps
 } = require("./lib/helpers");
 
 var d3 = {
@@ -80,37 +79,12 @@ var render = function() {
   var element = document.querySelector(container);
   var width = element.offsetWidth;
 
-  const parseValue = d => {
-    switch (d.type) {
-      case "number":
-        return parseNumber(d.use_value);
-      default:
-        return d.use_value;
-    }
-  };
-
-  const loadMobile = d => {
-    if (d.value_mobile && isMobile.matches) {
-      d.use_value = d.value_mobile;
-    } else {
-      d.use_value = d.value;
-    }
-
-    return d;
-  };
-
-  var props = flow(
-    mapValues(loadMobile),
-    mapValues(parseValue),
-    omitBy(d => d == null)
-  )(PROPS);
-
   renderLineChart({
     container,
     width,
     data: dataSeries,
     // stackedData,
-    props
+    props: processProps(PROPS)
   });
 
   // Update iframe
