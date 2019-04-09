@@ -1,3 +1,3 @@
-COLORS = require("./colors");
+const COLORS = require("./colors");
 
 module.exports = colorStr => (colorStr in COLORS ? COLORS[colorStr] : colorStr);
