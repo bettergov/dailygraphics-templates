@@ -13,7 +13,6 @@ module.exports = {
   isProduction: require("./isProduction"),
   lookupColor: require("./lookupColor"),
   makeTranslate: require("./makeTranslate"),
-  nestStringProperties: require("./nestStringProperties"),
   parseNumber: require("./parseNumber"),
   processProps: require("./processProps"),
   urlToLocation: require("./urlToLocation"),
