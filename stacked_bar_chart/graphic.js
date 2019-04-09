@@ -6,20 +6,17 @@ require("./lib/webfonts");
 var pymChild = null;
 var skipLabels = ["label", "values", "offset"];
 
-var d3 = {
-  ...require("d3-axis"),
-  ...require("d3-format"),
-  ...require("d3-scale"),
-  ...require("d3-selection")
-};
+var d3 = Object.assign(
+  {},
+  require("d3-format"),
+  require("d3-scale"),
+  require("d3-selection"),
+  require("d3-jetpack")
+);
 
-var {
-  COLORS,
-  classify,
-  makeTranslate,
-  formatStyle,
-  processProps
-} = require("./lib/helpers");
+var ƒ = d3.f;
+
+var { COLORS, classify, processProps } = require("./lib/helpers");
 
 // Initialize the graphic.
 var onWindowLoaded = function() {
@@ -96,11 +93,21 @@ var render = function() {
   var element = document.querySelector(container);
   var width = element.offsetWidth;
 
+  var props = processProps(PROPS);
+
+  var data = DATA.map(d => {
+    Object.entries(props.columns).forEach(([key, val]) => {
+      d[key] = d[val];
+    });
+
+    return d;
+  });
+
   renderStackedBarChart({
     container,
     width,
-    data: DATA,
-    props: processProps(PROPS)
+    data,
+    props
   });
 
   // Update iframe
@@ -112,41 +119,15 @@ var render = function() {
 // Render a stacked bar chart.
 var renderStackedBarChart = function(config) {
   // Setup
-  var {
-    margins,
-    /* data refs */
-    labelColumn,
-    /* bars */
-    barHeight,
-    barGap,
-    /* labels */
-    labelWidth,
-    labelMargin,
-    valueGap,
-    valueFormat = "",
-    showBarValues,
-    /* x axis */
-    ticksX,
-    roundTicksFactor,
-    showXAxisTop,
-    showXAxisBottom,
-    showXAxisGrid,
-    xMin,
-    xMax
-  } = config.props;
+  var { bar, labels, margin, values, x, xAxis } = config.props;
 
   // Calculate actual chart dimensions
-  var chartWidth = config.width - margins.left - margins.right;
-  var chartHeight = (barHeight + barGap) * config.data.length;
+  var chartWidth = config.width - margin.left - margin.right;
+  var chartHeight = (bar.height + bar.gap) * config.data.length;
 
   // Clear existing graphic (for redraw)
   var containerElement = d3.select(config.container);
   containerElement.html("");
-
-  var xScale = d3
-    .scaleLinear()
-    .domain([xMin, xMax])
-    .rangeRound([0, chartWidth]);
 
   var colorScale = d3
     .scaleOrdinal()
@@ -157,12 +138,8 @@ var renderStackedBarChart = function(config) {
 
   // Render the legend.
   var legend = containerElement
-    .append("ul")
-    .attr("class", "key")
-    .selectAll("g")
-    .data(colorScale.domain())
-    .enter()
-    .append("li")
+    .append("ul.key")
+    .appendMany("li", colorScale.domain())
     .attr("class", (d, i) => `key-item key-${i} ${classify(d)}`);
 
   legend.append("b").style("background-color", colorScale);
@@ -170,169 +147,110 @@ var renderStackedBarChart = function(config) {
   legend.append("label").text(d => d);
 
   // Create the root SVG element.
-  var chartWrapper = containerElement
-    .append("div")
-    .attr("class", "graphic-wrapper");
+  var chartWrapper = containerElement.append("div.graphic-wrapper");
 
-  var chartElement = chartWrapper
-    .append("svg")
-    .attr("width", chartWidth + margins.left + margins.right)
-    .attr("height", chartHeight + margins.top + margins.bottom)
-    .append("g")
-    .attr("transform", `translate(${margins.left},${margins.top})`);
+  // Create svg using d3-jetpack/conventions
+  // https://github.com/gka/d3-jetpack
+  const c = d3.conventions({
+    sel: chartWrapper,
+    width: chartWidth,
+    height: chartHeight,
+    margin,
+    yAxis: () => null
+  });
 
-  // Create D3 axes.
+  const { svg } = c;
+  c.x.domain(x.domain);
+
   // Render axes to chart.
-  if (showXAxisBottom) {
-    var xAxisBottom = d3
-      .axisBottom()
-      .scale(xScale)
-      .ticks(ticksX)
-      .tickFormat(function(d) {
-        return d3.format(valueFormat)(d);
-      });
-
-    chartElement
-      .append("g")
-      .attr("class", "x axis bottom")
-      .attr("transform", makeTranslate(0, chartHeight))
-      .call(xAxisBottom);
-  }
-
-  if (showXAxisTop) {
-    var xAxisTop = d3
-      .axisTop()
-      .scale(xScale)
-      .ticks(ticksX)
-      .tickFormat(function(d) {
-        return d3.format(valueFormat)(d);
-      });
-
-    chartElement
-      .append("g")
-      .attr("class", "x axis top")
-      // .attr("transform", makeTranslate(0, chartHeight))
-      .call(xAxisTop);
+  if (xAxis.show) {
+    c.xAxis.ticks(xAxis.ticks).tickFormat(d => d3.format(values.format)(d));
+    d3.drawAxis(c);
   }
 
   // Render grid to chart.
-  if (showXAxisGrid) {
+  if (xAxis.showGrid) {
     // Render grid to chart.
-    var xAxisGrid = d3
-      .axisBottom()
-      .scale(xScale)
-      .ticks(ticksX)
-      .tickSize(-chartHeight, 0, 0)
-      .tickFormat("");
+    var xAxisGrid = c.xAxis.tickSize(-c.height, 0, 0).tickFormat("");
 
-    chartElement
-      .append("g")
-      .attr("class", "x grid")
-      .attr("transform", makeTranslate(0, chartHeight))
+    svg
+      .append("g.x.grid")
+      .translate([0, c.height])
       .call(xAxisGrid);
   }
 
-  // console.log(config.data);
-
-  // stack data
-  // var stack = d3.stack().keys(Object.keys(config.data[0]));
-  // var stack = d3.stack().keys()
-
-  // console.log(stack(config.data));
-
   // Render bars to chart.
-  var group = chartElement
-    .selectAll(".group")
-    .data(config.data)
-    .enter()
-    .append("g")
-    .attr("class", d => "group " + classify(d[labelColumn]))
-    .attr(
-      "transform",
-      (d, i) => "translate(0," + i * (barHeight + barGap) + ")"
-    );
+  var group = svg
+    .appendMany("g.group", config.data)
+    .attr("class", d => "group " + classify(d.label))
+    .translate((d, i) => [0, i * (bar.height + bar.gap)]);
 
   group
-    .selectAll("rect")
-    .data(function(d) {
-      return d.values;
+    .appendMany("rect", ƒ("values"))
+    .at({
+      class: d => classify(d.name),
+      height: bar.height,
+      width: d => Math.abs(c.x(d.x1) - c.x(d.x0)),
+      x: d => (d.x0 < d.x1 ? c.x(d.x0) : c.x(d.x1))
     })
-    .enter()
-    .append("rect")
-    .attr("x", d => (d.x0 < d.x1 ? xScale(d.x0) : xScale(d.x1)))
-    .attr("width", d => Math.abs(xScale(d.x1) - xScale(d.x0)))
-    .attr("height", barHeight)
-    .style("fill", d => colorScale(d.name))
-    .attr("class", d => classify(d.name));
+    .st({ fill: d => colorScale(d.name) });
 
   // Render bar values.
-  if (showBarValues) {
+  if (values.show) {
     group
-      .append("g")
-      .attr("class", "value")
-      .selectAll("text")
-      .data(d => d.values)
-      .enter()
-      .append("text")
-      .text(d => d3.format(valueFormat)(d.val))
+      .append("g.value")
+      .appendMany("text", d => d.values)
+      .text(d => d3.format(values.format)(d.val))
       .attr("class", d => classify(d.name))
-      .attr("x", d => xScale(d.x1))
+      .at({
+        x: d => c.x(d.x1),
+        dy: bar.height / 2 + 4
+      })
       .attr("dx", function(d) {
         var textWidth = this.getComputedTextLength();
-        var barWidth = Math.abs(xScale(d.x1) - xScale(d.x0));
+        var barWidth = Math.abs(c.x(d.x1) - c.x(d.x0));
 
         // Hide labels that don't fit
-        if (textWidth + valueGap * 2 > barWidth) {
+        if (textWidth + values.gap * 2 > barWidth) {
           d3.select(this).classed("hidden", true);
         }
 
         if (d.x1 < 0) {
-          return valueGap;
+          return values.gap;
         }
 
-        return -(valueGap + textWidth);
-      })
-      .attr("dy", barHeight / 2 + 4);
+        return -(values.gap + textWidth);
+      });
   }
 
   // Render 0-line.
-  if (xMin <= 0) {
-    chartElement
-      .append("line")
-      .attr("class", "zero-line")
-      .attr("x1", xScale(0))
-      .attr("x2", xScale(0))
-      .attr("y1", 0)
-      .attr("y2", chartHeight);
+  if (c.x.domain()[0] <= 0) {
+    svg.append("line.zero-line").at({
+      x1: c.x(0),
+      x2: c.x(0),
+      y1: 0,
+      y2: c.height
+    });
   }
 
   // Render bar labels.
   chartWrapper
-    .append("ul")
-    .attr("class", "labels")
-    .attr(
-      "style",
-      formatStyle({
-        width: labelWidth + "px",
-        top: margins.top + "px",
-        left: "0"
-      })
-    )
-    .selectAll("li")
-    .data(config.data)
-    .enter()
-    .append("li")
-    .attr("style", (d, i) =>
-      formatStyle({
-        width: labelWidth + "px",
-        height: barHeight + "px",
-        left: "0px",
-        top: i * (barHeight + barGap) + "px;"
-      })
-    )
-    .attr("class", d => classify(d[labelColumn]))
+    .append("ul.labels")
+    .st({
+      width: labels.width,
+      top: margin.top,
+      left: 0
+    })
+    .appendMany("li", config.data)
+    .st({
+      width: labels.width,
+      height: bar.height,
+      left: 0,
+      top: (d, i) => i * (bar.height + bar.gap)
+    })
+    .at({ class: d => classify(d.label) })
     .append("span")
-    .text(d => d[labelColumn]);
+    .text(ƒ("label"));
 };
 
 /*
