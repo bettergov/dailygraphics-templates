@@ -1,18 +1,21 @@
 var pym = require("./lib/pym");
 var ANALYTICS = require("./lib/analytics");
 require("./lib/webfonts");
-var { isMobile } = require("./lib/breakpoints");
 
 var pymChild;
 var skipLabels = ["Group", "key", "values"];
 
-var d3 = {
-  ...require("d3-axis"),
-  ...require("d3-scale"),
-  ...require("d3-selection")
-};
+var d3 = Object.assign(
+  {},
+  require("d3-format"),
+  require("d3-scale"),
+  require("d3-selection"),
+  require("d3-jetpack")
+);
 
-var { COLORS, classify, makeTranslate, formatStyle } = require("./lib/helpers");
+var ƒ = d3.f;
+
+var { COLORS, classify, processProps } = require("./lib/helpers");
 
 // Initialize the graphic.
 var onWindowLoaded = function() {
@@ -61,9 +64,13 @@ var render = function() {
   var container = "#grouped-bar-chart";
   var element = document.querySelector(container);
   var width = element.offsetWidth;
+
+  var props = processProps(PROPS);
+
   renderGroupedBarChart({
     container,
     width,
+    props,
     data: DATA
   });
 
@@ -75,67 +82,25 @@ var render = function() {
 
 // Render a bar chart.
 var renderGroupedBarChart = function(config) {
+  var { bar, group, labels, margin, values, x, xAxis } = config.props;
+
   // Setup chart container.
   var labelColumn = "label";
   var valueColumn = "amt";
 
-  var numGroups = config.data.length;
-  var numGroupBars = config.data[0].values.length;
-
-  var barHeight = 25;
-  var barGapInner = 2;
-  var barGap = 10;
-  var groupHeight = barHeight * numGroupBars + barGapInner * (numGroupBars - 1);
-  var labelWidth = 85;
-  var labelMargin = 6;
-  var valueGap = 6;
-
-  var margins = {
-    top: 0,
-    right: 15,
-    bottom: 20,
-    left: labelWidth + labelMargin
-  };
-
-  var ticksX = 7;
-  var roundTicksFactor = 5;
-
   // Calculate actual chart dimensions
-  var chartWidth = config.width - margins.left - margins.right;
+  var chartWidth = config.width - margin.left - margin.right;
   var chartHeight =
-    ((barHeight + barGapInner) * numGroupBars - barGapInner + barGap) *
-      numGroups -
-    barGap +
-    barGapInner;
+    ((bar.height + bar.gapInner) * group.numBars - bar.gapInner + bar.gap) *
+      group.numTotal -
+    bar.gap +
+    bar.gapInner;
 
   // Clear existing graphic (for redraw)
   var containerElement = d3.select(config.container);
   containerElement.html("");
 
   // Create D3 scale objects.
-  var values = config.data
-    .reduce((acc, d) => acc.concat(d.values), [])
-    .map(d => d[valueColumn]);
-  var ceilings = values.map(
-    v => Math.ceil(v / roundTicksFactor) * roundTicksFactor
-  );
-  var floors = values.map(
-    v => Math.floor(v / roundTicksFactor) * roundTicksFactor
-  );
-  var min = Math.min(...floors);
-  var max = Math.max(...ceilings);
-
-  if (min > 0) {
-    min = 0;
-  }
-
-  var xScale = d3
-    .scaleLinear()
-    .domain([min, max])
-    .range([0, chartWidth]);
-
-  var yScale = d3.scaleLinear().range([chartHeight, 0]);
-
   var colorScale = d3
     .scaleOrdinal()
     .domain(
@@ -144,124 +109,91 @@ var renderGroupedBarChart = function(config) {
       )
     )
     .range([COLORS.teal3, COLORS.teal5]);
+
   // Render a color legend.
   var legend = containerElement
-    .append("ul")
-    .attr("class", "key")
-    .selectAll("g")
-    .data(config.data[0].values)
-    .enter()
-    .append("li")
+    .append("ul.key")
+    .appendMany("li", config.data[0].values)
     .attr("class", function(d, i) {
-      return "key-item key-" + i + " " + classify(d[labelColumn]);
+      return "key-item key-" + i + " " + classify(d.label);
     });
 
-  legend.append("b").style("background-color", d => colorScale(d[labelColumn]));
+  legend.append("b").style("background-color", d => colorScale(d.label));
 
-  legend.append("label").text(d => d[labelColumn]);
+  legend.append("label").text(d => d.label);
 
   // Create the root SVG element.
-  var chartWrapper = containerElement
-    .append("div")
-    .attr("class", "graphic-wrapper");
+  var chartWrapper = containerElement.append("div.graphic-wrapper");
 
-  var chartElement = chartWrapper
-    .append("svg")
-    .attr("width", chartWidth + margins.left + margins.right)
-    .attr("height", chartHeight + margins.top + margins.bottom)
-    .append("g")
-    .attr("transform", `translate(${margins.left},${margins.top})`);
+  // Create svg using d3-jetpack/conventions
+  // https://github.com/gka/d3-jetpack
+  const c = d3.conventions({
+    sel: chartWrapper,
+    width: chartWidth,
+    height: chartHeight,
+    margin,
+    yAxis: () => null
+  });
 
-  // Create D3 axes.
-  var xAxis = d3
-    .axisBottom()
-    .scale(xScale)
-    .ticks(ticksX)
-    .tickFormat(d => d.toFixed(0) + "%");
+  const { svg } = c;
+  c.x.domain(x.domain);
 
   // Render axes to chart.
-  chartElement
-    .append("g")
-    .attr("class", "x axis")
-    .attr("transform", makeTranslate(0, chartHeight))
-    .call(xAxis);
+  if (xAxis.show) {
+    c.xAxis
+      .ticks(xAxis.ticks)
+      .tickFormat(d => d3.format(values.format)(d / 100));
+    d3.drawAxis(c);
+  }
 
   // Render grid to chart.
-  var xAxisGrid = () => xAxis;
+  if (xAxis.showGrid) {
+    var xAxisGrid = c.xAxis.tickSize(-c.height, 0, 0).tickFormat("");
 
-  chartElement
-    .append("g")
-    .attr("class", "x grid")
-    .attr("transform", makeTranslate(0, chartHeight))
-    .call(
-      xAxisGrid()
-        .tickSize(-chartHeight, 0, 0)
-        .tickFormat("")
-    );
+    svg
+      .append("g.x.grid")
+      .translate([0, c.height])
+      .call(xAxisGrid);
+  }
 
   // Render bars to chart.
-  var barGroups = chartElement
-    .selectAll(".bars")
-    .data(config.data)
-    .enter()
-    .append("g")
-    .attr("class", "g bars")
-    .attr("transform", (d, i) =>
-      makeTranslate(0, i ? (groupHeight + barGap) * i : 0)
-    );
+  var barGroups = svg
+    .appendMany("g.bars", config.data)
+    .translate((d, i) => [0, i ? (group.height + bar.gap) * i : 0]);
 
   barGroups
-    .selectAll("rect")
-    .data(d => d.values)
-    .enter()
-    .append("rect")
-    .attr("x", d => (d[valueColumn] >= 0 ? xScale(0) : xScale(d[valueColumn])))
-    .attr("y", (d, i) => (i ? barHeight * i + barGapInner * i : 0))
-    .attr("width", d => Math.abs(xScale(0) - xScale(d[valueColumn])))
-    .attr("height", barHeight)
-    .style("fill", d => colorScale(d[labelColumn]))
-    .attr("class", d => "y-" + d[labelColumn]);
+    .appendMany("rect", ƒ("values"))
+    .attr("x", d => (d[valueColumn] >= 0 ? c.x(0) : c.x(d[valueColumn])))
+    .attr("y", (d, i) => (i ? bar.height * i + bar.gapInner * i : 0))
+    .attr("width", d => Math.abs(c.x(0) - c.x(d[valueColumn])))
+    .attr("height", bar.height)
+    .style("fill", d => colorScale(d.label))
+    .attr("class", d => "y-" + d.label);
 
   // Render 0-line.
-  if (min < 0) {
-    chartElement
-      .append("line")
-      .attr("class", "zero-line")
-      .attr("x1", xScale(0))
-      .attr("x2", xScale(0))
-      .attr("y1", 0)
-      .attr("y2", chartHeight);
+  if (c.x.domain()[0] <= 0) {
+    svg.append("line.zero-line").at({
+      x1: c.x(0),
+      x2: c.x(0),
+      y1: 0,
+      y2: c.height
+    });
   }
 
   // Render bar labels.
   chartWrapper
-    .append("ul")
-    .attr("class", "labels")
-    .attr(
-      "style",
-      formatStyle({
-        width: labelWidth + "px",
-        top: margins.top + "px",
-        left: "0"
-      })
-    )
-    .selectAll("li")
-    .data(config.data)
-    .enter()
-    .append("li")
-    .attr("style", function(d, i) {
-      var top = (groupHeight + barGap) * i;
-
-      if (i == 0) {
-        top = 0;
-      }
-
-      return formatStyle({
-        width: labelWidth - 10 + "px",
-        height: barHeight + "px",
-        left: "0px",
-        top: top + "px;"
-      });
+    .append("ul.labels")
+    .st({
+      width: labels.width,
+      top: margin.top,
+      left: 0
+    })
+    .appendMany("li", config.data)
+    .st({
+      width: labels.width - 10,
+      height: bar.height,
+      left: 0,
+      top: (d, i) => (group.height + bar.gap) * i
     })
     .attr("class", d => classify(d.key))
     .append("span")
@@ -269,12 +201,8 @@ var renderGroupedBarChart = function(config) {
 
   // Render bar values.
   barGroups
-    .append("g")
-    .attr("class", "value")
-    .selectAll("text")
-    .data(d => d.values)
-    .enter()
-    .append("text")
+    .append("g.value")
+    .appendMany("text", ƒ("values"))
     .text(function(d) {
       var v = d[valueColumn].toFixed(0);
 
@@ -284,35 +212,37 @@ var renderGroupedBarChart = function(config) {
 
       return v + "%";
     })
-    .attr("x", d => xScale(d[valueColumn]))
-    .attr("y", (d, i) => (i ? barHeight * i + barGapInner : 0))
+    .at({
+      x: d => c.x(d[valueColumn]),
+      y: (d, i) => (i ? bar.height * i + bar.gapInner : 0)
+    })
     .attr("dx", function(d) {
-      var xStart = xScale(d[valueColumn]);
+      var xStart = c.x(d[valueColumn]);
       var textWidth = this.getComputedTextLength();
 
       // Negative case
       if (d[valueColumn] < 0) {
-        var outsideOffset = -(valueGap + textWidth);
+        var outsideOffset = -(values.gap + textWidth);
 
         if (xStart + outsideOffset < 0) {
           d3.select(this).classed("in", true);
-          return valueGap;
+          return values.gap;
         } else {
           d3.select(this).classed("out", true);
           return outsideOffset;
         }
         // Positive case
       } else {
-        if (xStart + valueGap + textWidth > chartWidth) {
+        if (xStart + values.gap + textWidth > chartWidth) {
           d3.select(this).classed("in", true);
-          return -(valueGap + textWidth);
+          return -(values.gap + textWidth);
         } else {
           d3.select(this).classed("out", true);
-          return valueGap;
+          return values.gap;
         }
       }
     })
-    .attr("dy", barHeight / 2 + 4);
+    .attr("dy", bar.height / 2 + 4);
 };
 
 /*
