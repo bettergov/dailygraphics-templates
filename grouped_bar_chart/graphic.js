@@ -115,7 +115,7 @@ var renderGroupedBarChart = function(config) {
     .append("ul.key")
     .appendMany("li", config.data[0].values)
     .attr("class", function(d, i) {
-      return "key-item key-" + i + " " + classify(d.label);
+      return `key-item key-${i} ${classify(d[labelColumn])}`;
     });
 
   legend.append("b").style("background-color", d => colorScale(d.label));

@@ -173,16 +173,12 @@ var renderStackedColumnChart = function(config) {
     .enter()
     .append("li")
     .attr("class", function(d, i) {
-      return "key-item key-" + i + " " + classify(d);
+      return `key-item key-${i} ${classify(d)}`;
     });
 
-  legend.append("b").style("background-color", function(d) {
-    return colorScale(d);
-  });
+  legend.append("b").style("background-color", d => colorScale(d));
 
-  legend.append("label").text(function(d) {
-    return d;
-  });
+  legend.append("label").text(d => d);
 
   // Create the root SVG element.
   var chartWrapper = containerElement
@@ -242,32 +238,18 @@ var renderStackedColumnChart = function(config) {
     .enter()
     .append("g")
     .attr("class", "bar")
-    .attr("transform", function(d) {
-      return makeTranslate(xScale(d[labelColumn]), 0);
-    });
+    .attr("transform", d => makeTranslate(xScale(d[labelColumn]), 0));
 
   bars
     .selectAll("rect")
     .data(d => d.values)
     .enter()
     .append("rect")
-    .attr("y", function(d) {
-      if (d.y1 < d.y0) {
-        return yScale(d.y0);
-      }
-
-      return yScale(d.y1);
-    })
+    .attr("y", d => (d.y1 < d.y0 ? yScale(d.y0) : yScale(d.y1)))
     .attr("width", xScale.bandwidth())
-    .attr("height", function(d) {
-      return Math.abs(yScale(d.y0) - yScale(d.y1));
-    })
-    .style("fill", function(d) {
-      return colorScale(d.name);
-    })
-    .attr("class", function(d) {
-      return classify(d.name);
-    });
+    .attr("height", d => Math.abs(yScale(d.y0) - yScale(d.y1)))
+    .style("fill", d => colorScale(d.name))
+    .attr("class", d => classify(d.name));
 
   // Render 0 value line.
   chartElement

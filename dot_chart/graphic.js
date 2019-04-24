@@ -99,7 +99,7 @@ var renderDotChart = function(config) {
     .attr("width", chartWidth + margins.left + margins.right)
     .attr("height", chartHeight + margins.top + margins.bottom)
     .append("g")
-    .attr("transform", "translate(" + margins.left + "," + margins.top + ")");
+    .attr("transform", `translate(${margins.left},${margins.top})`);
 
   // Create D3 scale objects.
   var min = 0;
@@ -123,9 +123,7 @@ var renderDotChart = function(config) {
     .axisBottom()
     .scale(xScale)
     .ticks(ticksX)
-    .tickFormat(function(d) {
-      return d + "%";
-    });
+    .tickFormat(d => d + "%");
 
   // Render axes to chart.
   chartElement

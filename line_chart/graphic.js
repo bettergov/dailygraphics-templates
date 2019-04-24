@@ -252,12 +252,8 @@ var renderLineChart = function(config) {
   // Render lines to chart.
   var line = d3
     .line()
-    .x(function(d) {
-      return xScale(d[dateColumn]);
-    })
-    .y(function(d) {
-      return yScale(d[valueColumn]);
-    });
+    .x(d => xScale(d[dateColumn]))
+    .y(d => yScale(d[valueColumn]));
 
   chartElement
     .append("g")
@@ -270,6 +266,8 @@ var renderLineChart = function(config) {
     .attr("stroke", d => colorScale(d.name))
     .attr("d", d => line(d.values));
 
+  var lastItem = d => d.values[d.values.length - 1];
+
   chartElement
     .append("g")
     .attr("class", "value")
@@ -277,21 +275,12 @@ var renderLineChart = function(config) {
     .data(config.data)
     .enter()
     .append("text")
-    .attr("x", function(d, i) {
-      var last = d.values[d.values.length - 1];
-
-      return xScale(last[dateColumn]) + 5;
-    })
-    .attr("y", function(d) {
-      var last = d.values[d.values.length - 1];
-
-      return yScale(last[valueColumn]) + 3;
-    })
+    .attr("x", d => xScale(lastItem(d)[dateColumn]) + 5)
+    .attr("y", d => yScale(lastItem(d)[valueColumn]) + 3)
     .text(function(d) {
-      var last = d.values[d.values.length - 1];
-      var value = last[valueColumn];
-
-      var label = last[valueColumn].toFixed(1);
+      var item = lastItem(d);
+      var value = item[valueColumn];
+      var label = value.toFixed(1);
 
       if (!isMobile.matches) {
         label = d.name + ": " + label;

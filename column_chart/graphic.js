@@ -212,7 +212,7 @@ var renderColumnChart = function(config) {
     .attr("width", chartWidth + margins.left + margins.right)
     .attr("height", chartHeight + margins.top + margins.bottom)
     .append("g")
-    .attr("transform", "translate(" + margins.left + "," + margins.top + ")");
+    .attr("transform", `translate(${margins.left},${margins.top})`);
 
   // Create D3 scale objects.
   var xScale = d3
@@ -222,11 +222,7 @@ var renderColumnChart = function(config) {
     .paddingInner(xScalePaddingInner)
     .paddingOuter(xScalePaddingOuter)
     .align(xScaleAlign)
-    .domain(
-      config.data.map(function(d) {
-        return d[labelColumn];
-      })
-    );
+    .domain(config.data.map(d => d[labelColumn]));
 
   var yScale = d3
     .scaleLinear()
@@ -330,16 +326,8 @@ var renderColumnChart = function(config) {
     .data(config.data)
     .enter()
     .append("rect")
-    .attr("x", function(d) {
-      return xScale(d[labelColumn]);
-    })
-    .attr("y", function(d) {
-      if (d[valueColumn] < 0) {
-        return yScale(0);
-      }
-
-      return yScale(d[valueColumn]);
-    })
+    .attr("x", d => xScale(d[labelColumn]))
+    .attr("y", d => (d[valueColumn] < 0 ? yScale(0) : yScale(d[valueColumn])))
     .attr("width", xScale.bandwidth())
     .attr("height", function(d) {
       return Math.abs(yScale(0) - yScale(d[valueColumn]));

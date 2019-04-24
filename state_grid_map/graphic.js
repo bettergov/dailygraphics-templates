@@ -44,9 +44,7 @@ var formatData = function() {
       "American Samoa"
     ];
 
-    DATA = DATA.filter(function(d) {
-      return territories.indexOf(d.state_name) == -1;
-    });
+    DATA = DATA.filter(d => territories.indexOf(d.state_name) == -1);
   }
 };
 
@@ -189,11 +187,11 @@ var renderStateGridMap = function(config) {
       var state = STATES.filter(s => s.name == d.state_name).pop();
       return isMobile.matches ? state.usps : state.ap;
     })
-    .attr("class", function(d) {
-      return d[valueColumn] !== null
-        ? "category-" + classify(d[valueColumn] + "") + " label label-active"
-        : "label";
-    })
+    .attr("class", d =>
+      d[valueColumn] !== null
+        ? `category-${classify(d[valueColumn] + "")} label label-active`
+        : "label"
+    )
     .attr("x", function(d) {
       var className = `.state-${classify(d.state_name)}`;
       var tileBox = $.one(className).getBBox();

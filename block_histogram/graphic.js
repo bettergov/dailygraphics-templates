@@ -114,12 +114,7 @@ var renderBlockHistogram = function(config) {
   var ticksY = 4;
 
   // Determine largest bin
-  var largestBin = Math.max.apply(
-    null,
-    binnedData.map(function(b) {
-      return b.length;
-    })
-  );
+  var largestBin = Math.max.apply(null, binnedData.map(b => b.length));
 
   // Calculate actual chart dimensions
   var chartWidth = config.width - margins.left - margins.right;
@@ -157,13 +152,7 @@ var renderBlockHistogram = function(config) {
   var xAxis = d3
     .axisBottom()
     .scale(xScale)
-    .tickFormat(function(d) {
-      if (d > 0) {
-        return "+" + d + "%";
-      } else {
-        return d + "%";
-      }
-    });
+    .tickFormat(d => (d > 0 ? "+" + d + "%" : d + "%"));
 
   var yAxis = d3
     .axisLeft()
@@ -249,12 +238,8 @@ var renderBlockHistogram = function(config) {
     .data(config.data)
     .enter()
     .append("g")
-    .attr("class", function(d, i) {
-      return "bin bin-" + i;
-    })
-    .attr("transform", function(d, i) {
-      return makeTranslate(xScale(COLOR_BINS[i]), 0);
-    });
+    .attr("class", (d, i) => "bin bin-" + i)
+    .attr("transform", (d, i) => makeTranslate(xScale(COLOR_BINS[i]), 0));
 
   bins
     .selectAll("rect")
@@ -271,16 +256,10 @@ var renderBlockHistogram = function(config) {
     .append("rect")
     .attr("width", xScale.bandwidth())
     .attr("x", 0)
-    .attr("y", function(d, i) {
-      return chartHeight - (blockHeight + blockGap) * (i + 1);
-    })
+    .attr("y", (d, i) => chartHeight - (blockHeight + blockGap) * (i + 1))
     .attr("height", blockHeight)
-    .attr("fill", function(d) {
-      return config.colors[d.parentIndex];
-    })
-    .attr("class", function(d) {
-      return classify(d.value);
-    });
+    .attr("fill", d => config.colors[d.parentIndex])
+    .attr("class", d => classify(d.value));
 
   // Render bin values.
   bins
@@ -294,13 +273,9 @@ var renderBlockHistogram = function(config) {
     .append("text")
     .attr("text-anchor", "middle")
     .attr("x", xScale.bandwidth() / 2)
-    .attr("y", function(d, i) {
-      return chartHeight - (blockHeight + blockGap) * (i + 1);
-    })
+    .attr("y", (d, i) => chartHeight - (blockHeight + blockGap) * (i + 1))
     .attr("dy", blockHeight / 2 + 4)
-    .text(function(d) {
-      return d.value;
-    });
+    .text(d => d.value);
 
   // Render annotations
   var annotations = chartElement.append("g").attr("class", "annotations");
