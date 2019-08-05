@@ -1,3 +1,6 @@
+// Load BGA fonts
+@import url("https://use.typekit.net/wjf8iou.css");
+
 // Media queries
 @screen-medium-above: ~"screen and (min-width: 651px)";
 @screen-mobile-above: ~"screen and (min-width: 501px)";
@@ -39,34 +42,30 @@
 @blue5      : #A8D5EF;
 @blue6      : #D3EAF7;
 
+@size1      : 3rem;
+@size2      : 2.5rem;
+@size3      : 2rem;
+@size4      : 1.5rem;
+@size5      : 1.25rem;
+@size6      : 1rem;
+@size7      : 0.75rem;
+
+@grey1      : hsl(0, 0, 21%);
+@grey2      : hsl(0, 0, 29%);
+@grey3      : hsl(0, 0, 48%);
+@grey4      : hsl(0, 0, 71%);
+@grey5      : hsl(0, 0, 86%);
+@grey6      : hsl(0, 0, 92%);
+
 // Fonts
-.gotham() {
-  font-family: 'Gotham SSm',Helvetica,Arial,sans-serif;
+.condensed() {
+  font-family: acumin-pro-condensed, 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-weight: normal;
   font-weight: 400;
 }
 
-// Normal Knockout
-.knockout() {
-  font-family: 'Knockout 31 4r','Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
-  font-weight: normal;
-}
-
-// Knockout, uppercased
-.knockout-upper() {
-  .knockout();
-  text-transform: uppercase;
-}
-
-// Knockout for headings
-.knockout-header() {
-  .knockout-upper();
-  letter-spacing: 0.05em;
-  -webkit-font-smoothing: antialiased;
-}
-
 .sans-serif() {
-  font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+  font-family: acumin-pro, 'Helvetica', 'Arial', sans-serif;
 }
 
 // Mixins
@@ -98,13 +97,19 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html { -webkit-text-size-adjust: none; }
+html { 
+  -webkit-text-size-adjust: none; 
+  font-size: 12px;
+}
 
 body {
+  .sans-serif();
+
   margin: 0;
-  padding: 33px 0;
-  font: 14px/1.4 Helvetica, Arial, sans-serif;
-  color: #555;
+  padding: 1rem 0;
+  font-size: @size6;
+  line-height: 1.4;
+  color: @grey3;
   //remove 300ms click delay in Safari, AKA still the worst
   touch-action: manipulation;
 }
@@ -114,35 +119,20 @@ img, svg {
 }
 
 h1 {
-  margin: 0 0 33px 0;
-  font-size: 20px;
-  color: #666;
-  font-family: 'Gotham SSm',Helvetica,Arial,sans-serif;
-  font-weight: normal;
+  .condensed();
+
+  margin: 0 0 1rem 0;
+  font-size: @size3;
+  color: @grey2;
   line-height: 1.3;
-  font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 
 h2 {
   font-weight: normal;
-  color: #777;
-  font-size: 12px;
-  margin: -22px 0 22px 0;
-  line-height: 1.6;
-}
-
-h3 {
-  margin: 0 0 15px 0;
-  font-family: 'Knockout 31 4r';
-  font-weight: normal;
-  text-transform: uppercase;
-  padding-top: 0;
-  line-height: 1.2;
-  letter-spacing: 0.05em;
-  -webkit-font-smoothing: antialiased;
-  font-size: 12px;
-  color: #333;
+  color: @grey3;
+  font-size: @size5;
+  margin: 1.5rem 0;
 }
 
 .nowrap {
@@ -150,33 +140,34 @@ h3 {
 }
 
 .footnotes {
-  margin-bottom: 20px;
+  margin-bottom: 1.5rem;
 
   h4 {
-    margin: 2px 0 7px 0;
-    color: #666;
-    font-size: 11px;
+    margin: 0;
+    color: @grey2;
+    font-size: @size6;
   }
 }
 
 .footnotes p,
 .footer p {
-  margin: 2px 0 0 0;
-  font-size: 11px;
-  line-height: 1.7;
-  color: #999;
+  margin: 0;
+  font-size: @size6;
+  line-height: 1.6;
+  color: @grey3;
 }
 
-.footer p { font-style: italic; }
-.footer p em { font-style: normal; }
-.footnotes p strong { color: #666; }
+.footer p strong,
+.footnotes p strong {
+  color: @grey2;
+}
 
 a, a:link, a:visited {
   color: #4774CC;
   text-decoration: none;
 }
 
-a:hover, a:active { color: #bccae5; }
+a:hover, a:active { text-decoration: underline; }
 
 // Standard graphic styles
 .graphic-wrapper {
@@ -185,7 +176,7 @@ a:hover, a:active { color: #bccae5; }
 
 .graphic {
   position: relative;
-  margin-bottom: 11px;
+  margin-bottom: 1rem;
   .clearfix();
 
   img {
@@ -195,28 +186,30 @@ a:hover, a:active { color: #bccae5; }
 }
 
 .key {
-  margin: -11px 0 33px 0;
+  margin: -0.5rem 0 2.5rem 0;
   padding: 0;
   list-style-type: none;
 
   .key-item {
+    @item-height: 15px;
+
     display: inline-block;
-    margin: 0 18px 0 0;
+    margin: 0 1.5rem 0 0;
     padding: 0;
-    line-height: 15px;
+    line-height: @item-height;
 
     b {
-      display: inline-block;
-      width: 15px;
-      height: 15px;
-      margin-right: 6px;
+      display: block;
+      width: @item-height;
+      height: @item-height;
+      margin-right: 0.5rem;
       float: left;
     }
 
     label {
       white-space: nowrap;
-      font-size: 12px;
-      color: #666;
+      font-size: @size6;
+      color: @grey3;
       font-weight: normal;
       -webkit-font-smoothing: antialiased;
     }
@@ -226,14 +219,14 @@ a:hover, a:active { color: #bccae5; }
 svg { overflow: hidden; }
 
 .axis {
-  font-size: 11px;
+  font-size: @size6;
   -webkit-font-smoothing: antialiased;
-  fill: #999;
+  fill: @grey4;
 
   path,
   line {
     fill: none;
-    stroke: #ccc;
+    stroke: @grey5;
     shape-rendering: crispEdges;
   }
 
@@ -241,14 +234,18 @@ svg { overflow: hidden; }
     path { display: none; }
     .tick line { display: none; }
   }
+
+  &.x {
+    .domain { display: none; }
+  }
 }
 
 .grid {
   path { display: none; }
 
   .tick {
-    stroke: #eee;
-    color: #eee;
+    stroke: @grey6;
+    color: @grey6;
     stroke-width: 1px;
     shape-rendering: crispEdges;
   }
@@ -259,7 +256,7 @@ svg { overflow: hidden; }
 }
 
 .zero-line  {
-  stroke: #666;
+  stroke: @grey3;
   stroke-width: 1px;
   shape-rendering: crispEdges;
 }
@@ -281,9 +278,9 @@ rect {
   li {
     position: absolute;
     text-align: right;
-    font-size: 12px;
+    font-size: @size6;
     line-height: 1.3;
-    color: #666;
+    color: @grey3;
     display: table;
     -webkit-font-smoothing: antialiased;
 
@@ -295,11 +292,11 @@ rect {
 }
 
 .value text {
-  font-size: 10px;
+  font-size: @size6;
   -webkit-font-smoothing: antialiased;
 
-  &.in { fill: #fff; }
-  &.out { fill: #999; }
+  &.in { fill: @grey6; }
+  &.out { fill: @grey4; }
 }
 
 // HOMEPAGE
